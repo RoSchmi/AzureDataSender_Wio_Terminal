@@ -1,0 +1,30 @@
+# .gitignore
+# This .gitignore file makes that the credentials in config_secret.h
+# are not transferred to GitHub
+# 
+# Start with ignoring everything which is forced by the star: *
+*
+## then: only include these files
+!.gitignore
+!Free_Fonts.h
+!config_secret_template.h
+!config.h
+!README
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
