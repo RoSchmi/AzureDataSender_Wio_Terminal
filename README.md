@@ -11,7 +11,7 @@ The stored data can be visualized in table form with the App 'AzureTabStorClient
 https://azuretabstorclient.wordpress.com/
 https://azureiotcharts.home.blog/
 
-Before you start, install the firmware v2.01 for the Wio Terminal, firmware v2.0.2 didn't work for me
+Before you start, install the firmware v2.0.1 for the Wio Terminal, firmware v2.0.2 didn't work for me
 https://wiki.seeedstudio.com/Wio-Terminal-Wi-Fi/
 
 When you have cloned this repository in your working directory proceed as follows:
