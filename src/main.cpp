@@ -41,9 +41,9 @@
 
 // in HTTPClient.h comment out the line:: //#include <esp32-hal-log.h>  
 
-//#include "mbedtls/md.h"
-//#include "mbedtls/base64.h"
-//#include "mbedtls/sha256.h"
+#include "mbedtls/md.h"
+#include "mbedtls/base64.h"
+#include "mbedtls/sha256.h"
 
 #include "TFT_eSPI.h"
 #include "Free_Fonts.h" //include the header file
@@ -105,36 +105,6 @@ DateTime dateTimeUTCNow;
 
 const char *ssid = IOT_CONFIG_WIFI_SSID;
 const char *password = IOT_CONFIG_WIFI_PASSWORD;
-
-const char* test_root_ca = \
-                            "-----BEGIN CERTIFICATE-----\n"
-                            "MIIEsTCCA5mgAwIBAgIQBOHnpNxc8vNtwCtCuF0VnzANBgkqhkiG9w0BAQsFADBs\n"
-                            "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
-                            "d3cuZGlnaWNlcnQuY29tMSswKQYDVQQDEyJEaWdpQ2VydCBIaWdoIEFzc3VyYW5j\n"
-                            "ZSBFViBSb290IENBMB4XDTEzMTAyMjEyMDAwMFoXDTI4MTAyMjEyMDAwMFowcDEL\n"
-                            "MAkGA1UEBhMCVVMxFTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3\n"
-                            "LmRpZ2ljZXJ0LmNvbTEvMC0GA1UEAxMmRGlnaUNlcnQgU0hBMiBIaWdoIEFzc3Vy\n"
-                            "YW5jZSBTZXJ2ZXIgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC2\n"
-                            "4C/CJAbIbQRf1+8KZAayfSImZRauQkCbztyfn3YHPsMwVYcZuU+UDlqUH1VWtMIC\n"
-                            "Kq/QmO4LQNfE0DtyyBSe75CxEamu0si4QzrZCwvV1ZX1QK/IHe1NnF9Xt4ZQaJn1\n"
-                            "itrSxwUfqJfJ3KSxgoQtxq2lnMcZgqaFD15EWCo3j/018QsIJzJa9buLnqS9UdAn\n"
-                            "4t07QjOjBSjEuyjMmqwrIw14xnvmXnG3Sj4I+4G3FhahnSMSTeXXkgisdaScus0X\n"
-                            "sh5ENWV/UyU50RwKmmMbGZJ0aAo3wsJSSMs5WqK24V3B3aAguCGikyZvFEohQcft\n"
-                            "bZvySC/zA/WiaJJTL17jAgMBAAGjggFJMIIBRTASBgNVHRMBAf8ECDAGAQH/AgEA\n"
-                            "MA4GA1UdDwEB/wQEAwIBhjAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIw\n"
-                            "NAYIKwYBBQUHAQEEKDAmMCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5kaWdpY2Vy\n"
-                            "dC5jb20wSwYDVR0fBEQwQjBAoD6gPIY6aHR0cDovL2NybDQuZGlnaWNlcnQuY29t\n"
-                            "L0RpZ2lDZXJ0SGlnaEFzc3VyYW5jZUVWUm9vdENBLmNybDA9BgNVHSAENjA0MDIG\n"
-                            "BFUdIAAwKjAoBggrBgEFBQcCARYcaHR0cHM6Ly93d3cuZGlnaWNlcnQuY29tL0NQ\n"
-                            "UzAdBgNVHQ4EFgQUUWj/kK8CB3U8zNllZGKiErhZcjswHwYDVR0jBBgwFoAUsT7D\n"
-                            "aQP4v0cB1JgmGggC72NkK8MwDQYJKoZIhvcNAQELBQADggEBABiKlYkD5m3fXPwd\n"
-                            "aOpKj4PWUS+Na0QWnqxj9dJubISZi6qBcYRb7TROsLd5kinMLYBq8I4g4Xmk/gNH\n"
-                            "E+r1hspZcX30BJZr01lYPf7TMSVcGDiEo+afgv2MW5gxTs14nhr9hctJqvIni5ly\n"
-                            "/D6q1UEL2tU2ob8cbkdJf17ZSHwD2f2LSaCYJkJA69aSEaRkCldUxPUd1gJea6zu\n"
-                            "xICaEnL6VpPX/78whQYwvwt/Tv9XBZ0k7YXDK/umdaisLRbvfXknsuvCnQsH6qqF\n"
-                            "0wGjIChBWUMo0oHjqvbsezt3tkBigAVBRQHvFwY+3sAzm2fTYS5yh+Rp/BIAV0Ae\n"
-                            "cPUeybQ=\n"
-                            "-----END CERTIFICATE-----\n";
 
 WiFiClientSecure wifi_client;
 
@@ -227,9 +197,6 @@ void setup()
     }
   }
 
-  int firstStatus = (int)WiFi.status();
-  int secondStatus = (int)WiFi.status();
-
   while (WiFi.status() != WL_CONNECTED)
   {
     
@@ -240,7 +207,7 @@ void setup()
    lcd_log_line((char *)"Connected, new Status:");
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
   
-  /*
+  
   IPAddress localIpAddress = WiFi.localIP();
   IPAddress gatewayIp =  WiFi.gatewayIP();
   IPAddress subNetMask =  WiFi.subnetMask();
@@ -261,14 +228,13 @@ void setup()
   lcd_log_line(buf);
   sprintf(buf, "Protocol: %s", UseHttps_State ? (char *)"https" : (char *)"http");
   lcd_log_line(buf);
-  */
-
-  wifi_client.setCACert(test_root_ca);
-  //wifi_client.setCACert(baltimore_root_ca);
-
+  
+  wifi_client.setCACert(baltimore_root_ca);
+  
   ntp.begin();
+  
   ntp.update();
-
+  
   // Set Daylightsavingtime for central europe
   ntp.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timetone +120min (+1 GMT + 1h summertime offset)
   ntp.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
@@ -276,11 +242,18 @@ void setup()
      
   lcd_log_line((char *)ntp.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)ntp.formattedTime("%A %T"));        // Www hh:mm:ss
+  
+  /*
+  DateTime now = DateTime(F(__DATE__), F(__TIME__));
+  dateTimeUTCNow = DateTime((uint16_t) now.year(), (uint8_t)now.month(), (uint8_t)now.day(),
+                (uint8_t)now.hour(), (uint8_t)now.minute(), (uint8_t)now.second());
+  */
 
-  //DateTime now = DateTime(F(__DATE__), F(__TIME__));
+  
   //DateTime now = DateTime(F((char *)ntp.formattedTime("%d. %B %Y")), F((char *)ntp.formattedTime("%A %T")));
   dateTimeUTCNow = DateTime((uint16_t) ntp.year(), (uint8_t)ntp.month(), (uint8_t)ntp.day(),
                 (uint8_t)ntp.hours(), (uint8_t)ntp.minutes(), (uint8_t)ntp.seconds());
+  
 
   // Set rtc to UTC Time
   sysTime.begin(dateTimeUTCNow);
@@ -351,7 +324,7 @@ void setup()
 
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 }
 
@@ -364,9 +337,8 @@ void loop()
 
     // Actualize Systemtime from ntp if update interval has expired
     // If exact datetime is critical, take the actualization outside the if loop
-    dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
 
-    // delay(20000);   // Outcommented! Only for test provokes a watchdog reboot
+    dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
   }
 
   dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
