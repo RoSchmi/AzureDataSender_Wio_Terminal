@@ -59,25 +59,16 @@ az_result myResult = dev_az_http_client_build_headers(request, headers_span);
 char* theHeader_str = (char*) az_span_ptr(headers_span);
 volatile size_t headerSize = strlen(theHeader_str);
 */
-     
-    //char urlBuffer[az_span_size(request->_internal.url) + 2] {0};
-    //az_span_to_str((char *)urlBuffer, sizeof(urlBuffer) -1, request->_internal.url);
-
-
+    
     //az_span_to_str(char* destination, int32_t destination_max_size, az_span source);
     
     az_span urlWorkCopy = request->_internal.url;
 
-
-    //String urlString = (char *)urlBuffer;
-
-    //int32_t foundProtocol = az_span_find(urlCopy, AZ_SPAN_LITERAL_FROM_STR(":"));
     int32_t colonIndex = az_span_find(urlWorkCopy, AZ_SPAN_LITERAL_FROM_STR(":"));
 		
     char protocol[6] {0};
     urlWorkCopy = request->_internal.url;
-
-    //String protocol = "";
+  
     bool protocolIsHttpOrHttps = false;
     int32_t slashIndex = - 1;
     if (colonIndex != -1)
@@ -88,15 +79,11 @@ volatile size_t headerSize = strlen(theHeader_str);
             protocolIsHttpOrHttps = true;
         }
 
-        //if ((protocol == "https") || (protocol == "http"))
-        //{
-        //  urlString = urlString.substring(colonIndex + 3);
-        //}
         slashIndex = az_span_find(az_span_slice_to_end(urlWorkCopy, colonIndex + 3), AZ_SPAN_LITERAL_FROM_STR("/"));
         
         slashIndex = (slashIndex != -1) ? slashIndex + colonIndex + 3 : -1;       
     }
-    //int foundSlash = urlString.indexOf('/');
+    
 
     char workBuffer[100] {0};
     
@@ -118,20 +105,10 @@ volatile size_t headerSize = strlen(theHeader_str);
     String resource = slashIndex != -1 ? (const char *)workBuffer : "";
 
 
-
-
-    
-
-    //String host = foundSlash != -1 ? urlString.substring(0, foundSlash) : urlString;
-    //String resource = foundSlash != -1 ? urlString.substring(foundSlash) : "";
-    //uint16_t port = protocol == "http" ? 80 : 443;
-
     uint16_t port = (strcmp(protocol, (const char *)"http") == 0) ? 80 : 443;
 
     //deviceHttp->setReuse(true);
 
-    //deviceHttp->end();
-    
     if (port == 80)
     {
       

@@ -40,8 +40,7 @@ int32_t dow(int32_t year, int32_t month, int32_t day);
 void GetTableXml(EntityProperty EntityProperties[], size_t propertyCount, az_span outSpan, size_t *outSpanLength);
 
 void TableClient::CreateTableAuthorizationHeader(const char * content, const char * canonicalResource, const char * ptimeStamp, const char * pHttpVerb, az_span pContentType, char * pMD5HashHex, char * pAutorizationHeader, bool useSharedKeyLite)
-{
-   
+{  
     char contentTypeString[25] {0};
 
     az_span_to_str(contentTypeString, (az_span_size(pContentType) + 1), pContentType);                                                                              
