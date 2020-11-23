@@ -12,6 +12,7 @@
 
 void setHttpClient(HTTPClient * httpClient);
 void setCaCert(const char * caCert);
+void setWiFiClient(WiFiClient * wifiClient);
 
 static az_result dev_az_http_client_build_headers(
     az_http_request const* request, 

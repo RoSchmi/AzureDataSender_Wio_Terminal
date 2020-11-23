@@ -113,7 +113,8 @@ WiFiUDP wifiUdp;
 NTP ntp(wifiUdp);
 
 HTTPClient http;
-HTTPClient * httpPtr = &http;
+
+static HTTPClient * httpPtr = &http;
 
 // must be static !!
 static SysTime sysTime;
@@ -168,12 +169,16 @@ void setup()
   lcd_log_line((char *)"Initial WiFi-Status:");
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     
-  delay(2000);
+  delay(1000);
   //Set WiFi to station mode and disconnect from an AP if it was previously connected
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
   lcd_log_line((char *)"First disconnecting, Status:");
+  while (WiFi.status() != WL_DISCONNECTED)
+  {
+    WiFi.disconnect();
+    delay(200);
+    
+  }
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
   delay(1000);
   sprintf(buf, "Connecting to SSID: %s", ssid);
@@ -199,15 +204,14 @@ void setup()
   }
 
   while (WiFi.status() != WL_CONNECTED)
-  {
-    
-    delay(1000);
+  {  
+    delay(2000);
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
+    WiFi.begin(ssid, password);
   }
 
    lcd_log_line((char *)"Connected, new Status:");
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
-  
   
   IPAddress localIpAddress = WiFi.localIP();
   IPAddress gatewayIp =  WiFi.gatewayIP();
@@ -325,7 +329,7 @@ void setup()
 
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  // az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 }
 
@@ -540,7 +544,7 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_
 
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
 {
-  TableClient table(pAccountPtr, pCaCert,  httpPtr);
+  TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Insert Entity
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity,  contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
@@ -565,10 +569,10 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
 az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName)
 {  
-  TableClient table(pAccountPtr, pCaCert,  httpPtr);
+  TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Create Table
-  az_http_status_code statusCode = table.CreateTable(pTableName, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
+  az_http_status_code statusCode = table.CreateTable(pTableName, contApplicationIatomIxml, acceptApplicationIjson, returnContent, false);
   
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))

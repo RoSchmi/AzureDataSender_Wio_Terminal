@@ -14,10 +14,11 @@
 
 #include <azure/core/az_span.h>
 
-WiFiClientSecure * _wifiClient;
+WiFiClient * _wifiClient;
 
 CloudStorageAccount  * _accountPtr;
 HTTPClient * _httpPtr;
+
 const char * _caCert;
 
 static SysTime sysTime;
@@ -132,13 +133,13 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
 
 
 // Constructor
-TableClient::TableClient(CloudStorageAccount * account, const char * caCert, HTTPClient * httpClient)
+TableClient::TableClient(CloudStorageAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient)
 
 {
     _accountPtr = account;
     _caCert = caCert;
     _httpPtr = httpClient;
-    //_wifiClient = wifiClient;
+    _wifiClient = wifiClient;
 }
 TableClient::~TableClient()
 {};
@@ -223,7 +224,7 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
   //sprintf(addBuffer, "%s%s%s%s%s%s%s%s%s%s%s%s%s", li1, li2, li3, li4,li5, li6, li7, li8, li9, li10,li11, li12, li13);
   
   
-  // Fills memory from 0x20029200 -  with pattern FF
+  // Fills memory from 0x20029200 -  with pattern AA55
   // So you can see at breakpoints how much of heap was used
   
   uint32_t * ptr_one;
@@ -235,13 +236,6 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
      ptr_one++;
   }
   
-
-
-
-
-
-
-
   // Create the body of the request
    // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200
    uint8_t addBuffer[1];
@@ -327,6 +321,7 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
 
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
+  setWiFiClient(_wifiClient);
 
   az_result const table_create_result
       = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);

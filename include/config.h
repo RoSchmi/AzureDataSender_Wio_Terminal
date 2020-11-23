@@ -21,7 +21,7 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 0.5      // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 0.5     // Sendinterval in minutes                                       
                                         // is limited to be not below 1 second
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes

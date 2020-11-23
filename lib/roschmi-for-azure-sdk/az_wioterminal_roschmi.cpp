@@ -24,7 +24,7 @@ extern "C"
 */
 
 HTTPClient *  deviceHttp = NULL;
-WiFiClientSecure * deviceWifiClient = NULL;
+WiFiClient * deviceWifiClient = NULL;
 
 const char * _caCertificate;
 
@@ -48,6 +48,8 @@ az_http_client_send_request(az_http_request const* request, az_http_response* re
   az_http_method requMethod = request->_internal.method;
   int32_t max_header_count = request->_internal.max_headers;
   size_t headerCount = az_http_request_headers_count(request);
+
+  //char nonsens[5] {0};
 
  // int32_t theQueryStart = request->_internal.query_start;
 
@@ -107,16 +109,16 @@ volatile size_t headerSize = strlen(theHeader_str);
 
     uint16_t port = (strcmp(protocol, (const char *)"http") == 0) ? 80 : 443;
 
-    //deviceHttp->setReuse(true);
-
+    deviceHttp->setReuse(false);
+    
+    
     if (port == 80)
     {
-      
-      deviceHttp->begin(host, port, resource);
+      deviceHttp->begin(* deviceWifiClient, host, port, resource, false);      
     }
     else
     {
-      deviceHttp->begin(host, port, resource, _caCertificate);
+      deviceHttp->begin(* deviceWifiClient, host, port, resource, true);    
     }
     
     char name_buffer[MAX_HEADERNAME_LENGTH +2] {0};
@@ -152,9 +154,9 @@ volatile size_t headerSize = strlen(theHeader_str);
         const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
         deviceHttp->collectHeaders(headerKeys, 5);
       
-        int httpCode = deviceHttp->POST((char *)theBody);
+        //int httpCode = deviceHttp->POST((char *)theBody);
 
-        //int httpCode = deviceHttp->POST(theBody, strlen((char *)theBody));
+        int httpCode = deviceHttp->POST(theBody, strlen((char *)theBody));
           
         delay(1); 
         
@@ -261,6 +263,14 @@ void setHttpClient(HTTPClient * httpClient)
   if (deviceHttp == NULL)
   {
       deviceHttp = httpClient;
+  }
+}
+
+void setWiFiClient(WiFiClient * wifiClient)
+{
+  if (deviceWifiClient == NULL)
+  {
+      deviceWifiClient = wifiClient;
   }
 }
 

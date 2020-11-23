@@ -47,7 +47,7 @@ typedef enum
 class TableClient
 {
 public:
-    TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient);
+    TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient);
     //TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient, WiFiClientSecure *wifiClient);
     ~TableClient();
     
