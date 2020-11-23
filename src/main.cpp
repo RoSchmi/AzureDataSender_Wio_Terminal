@@ -325,7 +325,7 @@ void setup()
 
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  // az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 }
 
@@ -545,7 +545,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   // Insert Entity
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity,  contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
 
-  char codeString[25] {0};
+  char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));    
@@ -570,7 +570,7 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   // Create Table
   az_http_status_code statusCode = table.CreateTable(pTableName, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
   
-  char codeString[25] {0};
+  char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   { 
     sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));    

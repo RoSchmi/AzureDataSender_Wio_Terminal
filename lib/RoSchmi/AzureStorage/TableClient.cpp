@@ -205,8 +205,6 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
   az_span responseTypeAzSpan = getResponseType_az_span(pResponseType);
   az_span acceptTypeAzSpan = getAcceptType_az_span(pAcceptType);
 
-  
-    
     const char * PROGMEM li1 = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>";
     const char * PROGMEM li2 = "<entry xmlns:d=\"http://schemas.microsoft.com/ado/2007/08/dataservices\"  ";
     const char * PROGMEM li3 = "xmlns:m=\"http://schemas.microsoft.com/ado/2007/08/dataservices/metadata\" ";
@@ -221,11 +219,67 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
           char * li12 = (char *)validTableName;
     const char * PROGMEM li13 = "</d:TableName></m:properties></content></entry>";
            
-  char addBuffer[600];
-  sprintf(addBuffer, "%s%s%s%s%s%s%s%s%s%s%s%s%s", li1, li2, li3, li4,li5, li6, li7, li8, li9, li10,li11, li12, li13);
+  //char addBuffer[600];
+  //sprintf(addBuffer, "%s%s%s%s%s%s%s%s%s%s%s%s%s", li1, li2, li3, li4,li5, li6, li7, li8, li9, li10,li11, li12, li13);
+  
+  
+  // Fills memory from 0x20029200 -  with pattern FF
+  // So you can see at breakpoints how much of heap was used
+  
+  uint32_t * ptr_one;
+  uint32_t * last_ptr_one;
+  ptr_one = (uint32_t *)0x20029200;
+  while (ptr_one < (uint32_t *)0x20029580)
+  {
+    *ptr_one = (uint32_t)0xAA55AA55;
+     ptr_one++;
+  }
   
 
-  az_span content_to_upload = az_span_create_from_str(addBuffer);
+
+
+
+
+
+
+  // Create the body of the request
+   // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200
+   uint8_t addBuffer[1];
+   uint8_t * addBufAddress = (uint8_t *)addBuffer;
+   addBufAddress = (uint8_t *)REQUEST_BODY_BUFFER_MEMORY_ADDR;
+
+   az_span startContent_to_upload = az_span_create(addBufAddress, REQUEST_BODY_BUFFER_LENGTH);
+
+
+   uint8_t remainderBuffer[1];
+   uint8_t * remainderBufAddress = (uint8_t *)remainderBuffer;
+   az_span remainder = az_span_create(remainderBufAddress, 900);
+
+            remainder = az_span_copy(startContent_to_upload, az_span_create_from_str((char *)li1));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li2));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li3));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li4));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li5));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li6));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li7));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li8));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li9));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li10));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li11));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li12));
+            remainder = az_span_copy(remainder, az_span_create_from_str((char *)li13));
+            
+   //remainder =  az_span_copy_u8(remainder, 0);
+   az_span_copy_u8(remainder, 0);
+
+
+
+az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);  
+
+
+
+
+  //az_span content_to_upload = az_span_create_from_str(addBuffer);
 
   String urlPath = validTableName;
   String TableEndPoint = _accountPtr->UriEndPointTable;
@@ -240,7 +294,9 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
 
   char authorizationHeaderBuffer[100] {0};
 
-  CreateTableAuthorizationHeader((char *)addBuffer, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
+  //CreateTableAuthorizationHeader((char *)addBuffer, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
+  CreateTableAuthorizationHeader((char *)addBufAddress, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
+
 
   //String authorizationHeader = String((char *)authorizationHeaderBuffer);
            
@@ -344,6 +400,19 @@ const char * HttpVerb = "POST";
         char * li20  = _properties;
   const char * PROGMEM li21  = "</m:properties></content></entry>";
 
+
+  // Fills memory from 0x20029200 -  with pattern FF
+  // So you can see at breakpoints how much of heap was used
+  
+  uint32_t * ptr_one;
+  uint32_t * last_ptr_one;
+  ptr_one = (uint32_t *)0x20029200;
+  while (ptr_one < (uint32_t *)0x20029580)
+  {
+    *ptr_one = (uint32_t)0xAA55AA55;
+     ptr_one++;
+  }
+  
    // Create the body of the request
    // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200
    uint8_t addBuffer[1];
@@ -378,6 +447,7 @@ const char * HttpVerb = "POST";
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li20));
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li21));
     
+//remainder = az_span_copy_u8(remainder, 0);
 az_span_copy_u8(remainder, 0);
   
   // This is how concatenation of the strings was done before

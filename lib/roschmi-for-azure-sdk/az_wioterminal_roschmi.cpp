@@ -140,16 +140,21 @@ volatile size_t headerSize = strlen(theHeader_str);
     }
 
     int32_t bodySize = request->_internal.body._internal.size;
-    char theBody[bodySize + 10] {0};
+    //char theBody[550] {0};
+    //char theBody[bodySize + 10] {0};
     
-    az_span_to_str((char *)theBody, bodySize + 1, request->_internal.body);
+    // az_span_to_str((char *)theBody, bodySize + 1, request->_internal.body);
     
+    uint8_t * theBody = request->_internal.body._internal.ptr;
+
     if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
     {       
         const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
         deviceHttp->collectHeaders(headerKeys, 5);
       
         int httpCode = deviceHttp->POST((char *)theBody);
+
+        //int httpCode = deviceHttp->POST(theBody, strlen((char *)theBody));
           
         delay(1); 
         
@@ -164,7 +169,7 @@ volatile size_t headerSize = strlen(theHeader_str);
         delay(2000);
         
         az_result appendResult;
-        char httpStatusLine[20] {0};
+        char httpStatusLine[25] {0};
         if (httpCode > 0)  // Request was successful
         {      
           sprintf((char *)httpStatusLine, "%s%i%s", "HTTP/1.1 ", httpCode, " ***\r\n");
@@ -271,7 +276,7 @@ void setCaCert(const char * caCert)
  * @param ref_headers list of headers
  * @return az_result
  */
-
+/*
 static AZ_NODISCARD az_result
 dev_az_http_client_build_headers(az_http_request const* request, az_span ref_headers)
 {
@@ -295,6 +300,7 @@ dev_az_http_client_build_headers(az_http_request const* request, az_span ref_hea
   az_span_copy_u8(ref_headers, 0);
   return AZ_OK;
 }
+*/
 
 /**
  * @brief writes a header key and value to a buffer as a 0-terminated string and using a separator
@@ -306,6 +312,8 @@ dev_az_http_client_build_headers(az_http_request const* request, az_span ref_hea
  * @param separator symbol to be used between key and value
  * @return az_result
  */
+
+/*
 static AZ_NODISCARD az_result dev_az_span_append_header_to_buffer(
     az_span writable_buffer,
     az_span header_name,
@@ -323,3 +331,4 @@ static AZ_NODISCARD az_result dev_az_span_append_header_to_buffer(
   az_span_copy_u8(writable_buffer, 0);
   return AZ_OK;
 }
+*/

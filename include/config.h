@@ -30,7 +30,7 @@
 #define TIMEZONE 60              // TimeZone time difference to UTC in minutes
 #define DSTOFFSET 60             // DaylightSaving Time offset in minutes
                                  // (Begin and end have to be defined in the code)
-#define TRANSPORT_PROTOCOL 0      // 0 = http, 1 = https
+#define TRANSPORT_PROTOCOL 1   // 0 = http, 1 = https
 
 #define MIN_DATAVALUE -40.0             // Values below are treated as invalid
 #define MAX_DATAVALUE 140.0             // Values above are treated as invalid
