@@ -554,11 +554,13 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
+    Serial.println((char *)codeString);
   }
   else
   {
-    sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));    
+    sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));   
     lcd_log_line((char *)codeString);
+    Serial.println((char *)codeString);
     delay(5000);
   }
 }
