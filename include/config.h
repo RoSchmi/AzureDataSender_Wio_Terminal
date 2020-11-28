@@ -21,23 +21,29 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 0.5     // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 0.5        // Sendinterval in minutes                                       
                                         // is limited to be not below 1 second
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes
                                         // (trunked to values between 1 - 60)
 
+#define NTP_UPDATE_INTERVAL_MINUTES 1    //  With this interval sytem time is updated
+                                        //  with internet time (is limited to not below 1 min)                           
+
 #define TIMEZONE 60              // TimeZone time difference to UTC in minutes
 #define DSTOFFSET 60             // DaylightSaving Time offset in minutes
                                  // (Begin and end have to be defined in the code)
-#define TRANSPORT_PROTOCOL 1   // 0 = http, 1 = https
+
+#define TRANSPORT_PROTOCOL 1     // 0 = http, 1 = https
 
 #define MIN_DATAVALUE -40.0             // Values below are treated as invalid
 #define MAX_DATAVALUE 140.0             // Values above are treated as invalid
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value
 
 
-#define USE_SIMULATED_SENSORVALUES      // Activates simulated sensor values (sinus curve)
+#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
+#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
+                                     // if activated we select test values, not sinus curve
 
 
 const char *baltimore_root_ca =

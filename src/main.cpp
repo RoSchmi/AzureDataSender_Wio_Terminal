@@ -13,10 +13,10 @@
 
 #include "WiFiUdp.h"
 #include "NTP.h"
-//#include "RTC_SAMD51.h"
+
 #include "DateTime.h"
 #include <time.h>
-#include <Time.h>
+//#include <Time.h>
 
 #include <Time/SysTime.h>
 
@@ -97,17 +97,26 @@ int current_text_line = 0;
 
 uint32_t loopCounter = 0;
 unsigned int insertCounter = 0;
+uint32_t timeNtpUpdateCounter = 0;
+volatile int64_t systimeNtpDelta = 0;
+
+volatile uint32_t previousMillis = 0;
+
+uint32_t interval = 60000;
+uint32_t lastNtpUpdate = 0;
 
 bool ledState = false;
 char strData[100];
 
 DateTime dateTimeUTCNow;
+volatile uint32_t dateTimeUtcOldSeconds;
+volatile uint32_t dateTimeUtcNewSeconds;
 
 
 const char *ssid = IOT_CONFIG_WIFI_SSID;
 const char *password = IOT_CONFIG_WIFI_PASSWORD;
 
-WiFiClientSecure wifi_client;
+
 
 WiFiUDP wifiUdp;
 NTP ntp(wifiUdp);
@@ -122,6 +131,15 @@ static SysTime sysTime;
 typedef const char* X509Certificate;
 
 X509Certificate myX509Certificate = baltimore_root_ca;
+
+
+#if TRANSPORT_PROTOCOL == 1
+  WiFiClientSecure wifi_client;
+#else
+  WiFiClient wifi_client;
+#endif
+
+
 
 // Set transport protocol as defined in config.h
 static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
@@ -234,16 +252,35 @@ void setup()
   sprintf(buf, "Protocol: %s", UseHttps_State ? (char *)"https" : (char *)"http");
   lcd_log_line(buf);
   
-  wifi_client.setCACert(baltimore_root_ca);
+
   
-  ntp.begin();
+  #if TRANSPORT_PROTOCOL == 1
+  wifi_client.setCACert(baltimore_root_ca);
+  #endif
+  
+  
+  ntp.begin(true);      // false means not blocking
   
   ntp.update();
+  /*
+  int ntpCounter = 0;
+  while (!ntp.update())
+  {
+    ntpCounter++;
+    previousMillis = millis();
+    
+    while (millis() - previousMillis <= 200)
+    { }   
+  }
+  lcd_log_line(itoa(ntpCounter, buf, 10));
+  */
   
   // Set Daylightsavingtime for central europe
-  ntp.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timetone +120min (+1 GMT + 1h summertime offset)
+  ntp.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
   ntp.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
-  ntp.updateInterval(600000);  // Update from ntp every 10 minutes
+  
+  ntp.updateInterval((NTP_UPDATE_INTERVAL_MINUTES < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000);  // Update from ntp (e.g. every 10 minutes)
+                                                                                                      // not below 5 min           
      
   lcd_log_line((char *)ntp.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)ntp.formattedTime("%A %T"));        // Www hh:mm:ss
@@ -256,12 +293,17 @@ void setup()
 
   
   //DateTime now = DateTime(F((char *)ntp.formattedTime("%d. %B %Y")), F((char *)ntp.formattedTime("%A %T")));
+  
   dateTimeUTCNow = DateTime((uint16_t) ntp.year(), (uint8_t)ntp.month(), (uint8_t)ntp.day(),
                 (uint8_t)ntp.hours(), (uint8_t)ntp.minutes(), (uint8_t)ntp.seconds());
   
 
   // Set rtc to UTC Time
   sysTime.begin(dateTimeUTCNow);
+
+  //ntp.stop();
+
+  
     
   // I started from Azure Storage Blob Example see: 
   // https://github.com/Azure/azure-sdk-for-c/blob/5c7444dfcd5f0b3bcf3aec2f7b62639afc8bd664/sdk/samples/storage/blobs/src/blobs_client_example.c
@@ -335,15 +377,33 @@ void setup()
 
 void loop() 
 {
-  if (loopCounter++ % 2000 == 0)    //Blink LED every 2000 th round to signal that App is running
+  volatile uint32_t currentMillis = millis();
+  if (currentMillis - previousMillis >= 100)   // every 100 msec
+  //if (loopCounter++ % 2000 == 0)    //Toggle LED every 2000 th round to signal that App is running
   {
+    previousMillis = currentMillis;
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
 
     // Actualize Systemtime from ntp if update interval has expired
     // If exact datetime is critical, take the actualization outside the if loop
-
+    
+    dateTimeUtcOldSeconds = dateTimeUTCNow.secondstime();
+    
+    // to be sure that dateTimeUTCNow is not corrupted
     dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
+
+    
+    
+    /*
+    while (dateTimeUtcNewSeconds != dateTimeUTCNow.secondstime())
+    {
+      dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
+      dateTimeUtcNewSeconds = dateTimeUTCNow.secondstime();
+    }
+    */
+
+    //systimeNtpDelta = dateTimeUTCOldSeconds - dateTimeUTCNow.secondstime(); 
   }
 
   dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
@@ -462,6 +522,47 @@ float ReadAnalogSensor(int pAin)
 #endif
 
 #ifdef USE_SIMULATED_SENSORVALUES
+      #ifdef USE_TEST_VALUES
+            // Here you can select that diagnostic values (for debugging)
+            // Are sent to your storage table
+            double theRead = MAGIC_NUMBER_INVALID;
+            switch (pAin)
+            {
+                case 0:
+                    {
+                        theRead = timeNtpUpdateCounter;
+                        //theRead = analog0.ReadRatio();
+                    }
+                    break;
+
+                case 1:
+                    {
+                        //int32_t deltaSeconds = systimeNtpDelta;
+                        theRead = 2.5;
+                        //theRead = systimeNtpDelta > 140 ? 140 : systimeNtpDelta < - 40 ? -40 : (double)systimeNtpDelta;
+                        
+                        //theRead = analog1.ReadRatio();
+                    }
+                    break;
+                case 2:
+                    {
+                        theRead = -0.30;
+                        //theRead = analog2.ReadRatio();
+                    }
+                    break;
+                case 3:
+                    {
+                        theRead = -65.40;
+                        //theRead = analog3.ReadRatio();
+                    }
+                    break;
+            }
+
+            return theRead ;
+
+  
+
+  #elif
             // Only as an example we here return values which draw a sinus curve
             // Console.WriteLine("entering Read analog sensor");
             int frequDeterminer = 4;
@@ -480,7 +581,8 @@ float ReadAnalogSensor(int pAin)
                     
             return roundf((float)25.0 * (float)sin(PI / 2.0 + (secondsOnDayElapsed * ((frequDeterminer * PI) / (float)86400)))) / 10  + y_offset;          
 
-            #endif
+  #endif
+#endif
 }
 
 
@@ -489,12 +591,24 @@ float ReadAnalogSensor(int pAin)
 DateTime actualizeSysTimeFromNtpIfNeeded()
 {
   DateTime dateTimeUTCNow = sysTime.getTime();
+
+  //ntp.begin();
+
   if (ntp.update())     // if update interval has expired
   {
+    //noInterrupts();
     dateTimeUTCNow = DateTime((uint16_t) ntp.year(), (uint8_t)ntp.month(), (uint8_t)ntp.day(),
-          (uint8_t)ntp.hours(), (uint8_t)ntp.minutes(), (uint8_t)ntp.seconds());  
+          (uint8_t)ntp.hours(), (uint8_t)ntp.minutes(), (uint8_t)ntp.seconds());
+
     sysTime.setTime(dateTimeUTCNow);
+    //interrupts();
+    char buffer[] = "YYYY MM DD hh mm ss";
+    dateTimeUTCNow.toString(buffer);
+    lcd_log_line((char *)buffer);   
+
+    timeNtpUpdateCounter++;
   }
+  //ntp.stop();
   return dateTimeUTCNow;
 }
 

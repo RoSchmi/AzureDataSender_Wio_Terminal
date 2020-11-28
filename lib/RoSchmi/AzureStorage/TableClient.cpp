@@ -503,6 +503,7 @@ az_span_copy_u8(remainder, 0);
   //set HTTPClient and certificate
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
+  setWiFiClient(_wifiClient);
 
   az_result const entity_upload_result
       = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);

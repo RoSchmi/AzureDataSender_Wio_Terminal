@@ -23,8 +23,8 @@ extern "C"
 #endif // __cplusplus
 */
 
-HTTPClient *  deviceHttp = NULL;
-WiFiClient * deviceWifiClient = NULL;
+HTTPClient *  devHttp = NULL;
+WiFiClient * devWifiClient = NULL;
 
 const char * _caCertificate;
 
@@ -48,10 +48,6 @@ az_http_client_send_request(az_http_request const* request, az_http_response* re
   az_http_method requMethod = request->_internal.method;
   int32_t max_header_count = request->_internal.max_headers;
   size_t headerCount = az_http_request_headers_count(request);
-
-  //char nonsens[5] {0};
-
- // int32_t theQueryStart = request->_internal.query_start;
 
 // Code to copy all headers into one string, actually not needed
 /*
@@ -86,7 +82,6 @@ volatile size_t headerSize = strlen(theHeader_str);
         slashIndex = (slashIndex != -1) ? slashIndex + colonIndex + 3 : -1;       
     }
     
-
     char workBuffer[100] {0};
     
     if (slashIndex == -1)
@@ -109,16 +104,16 @@ volatile size_t headerSize = strlen(theHeader_str);
 
     uint16_t port = (strcmp(protocol, (const char *)"http") == 0) ? 80 : 443;
 
-    deviceHttp->setReuse(false);
+    devHttp->setReuse(false);
     
     
     if (port == 80)
-    {
-      deviceHttp->begin(* deviceWifiClient, host, port, resource, false);      
+    { 
+      devHttp->begin(* devWifiClient, host, port, resource, false);      
     }
     else
     {
-      deviceHttp->begin(* deviceWifiClient, host, port, resource, true);    
+      devHttp->begin(* devWifiClient, host, port, resource, true);    
     }
     
     char name_buffer[MAX_HEADERNAME_LENGTH +2] {0};
@@ -138,7 +133,7 @@ volatile size_t headerSize = strlen(theHeader_str);
       nameString = (char *)name_buffer;
       valueString = (char *)value_buffer;
 
-      deviceHttp->addHeader(nameString, valueString, true, true);   
+      devHttp->addHeader(nameString, valueString, true, true);   
     }
 
     int32_t bodySize = request->_internal.body._internal.size;
@@ -152,17 +147,18 @@ volatile size_t headerSize = strlen(theHeader_str);
     if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
     {       
         const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
-        deviceHttp->collectHeaders(headerKeys, 5);
+        devHttp->collectHeaders(headerKeys, 5);
       
-        //int httpCode = deviceHttp->POST((char *)theBody);
+        //int httpCode = devHttp->POST((char *)theBody);
 
-        int httpCode = deviceHttp->POST(theBody, strlen((char *)theBody));
+        int httpCode = devHttp->POST(theBody, strlen((char *)theBody));
+        //httpCode = -1;
           
         delay(1); 
         
 
-        volatile size_t responseBodySize = deviceHttp->getSize();
-        size_t respHeaderCount = deviceHttp->headers();      
+        //volatile size_t responseBodySize = devHttp->getSize();
+              
        
 
         int indexCtr = 0;
@@ -171,32 +167,38 @@ volatile size_t headerSize = strlen(theHeader_str);
         delay(2000);
         
         az_result appendResult;
-        char httpStatusLine[25] {0};
+        char httpStatusLine[35] {0};
         if (httpCode > 0)  // Request was successful
         {      
           sprintf((char *)httpStatusLine, "%s%i%s", "HTTP/1.1 ", httpCode, " ***\r\n");
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)httpStatusLine));
-           
+
+          size_t respHeaderCount = devHttp->headers();
+
           for (size_t i = 0; i < respHeaderCount; i++)
           {       
-            appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)deviceHttp->headerName(i).c_str()));          
+            appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)devHttp->headerName(i).c_str()));          
             appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)": "));
-            appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)deviceHttp->header(i).c_str()));
+            appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)devHttp->header(i).c_str()));
             appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"\r\n"));
           }
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"\r\n"));
-          appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)deviceHttp->getString().c_str()));
+          appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)devHttp->getString().c_str()));
         }
         else
-        {
-          // Request failed, set StatusCode to 400
-          sprintf((char *)httpStatusLine, "%s%i%s", "HTTP/1.1 ", 400, " ***\r\n");
+        {      
+          if (httpCode < 0 && httpCode >= - 11)         
+          {
+            volatile int catchedCode = httpCode;
+          }
+          // Request failed because of internal http-client error
+          sprintf((char *)httpStatusLine, "%s%i%s%i%s", "HTTP/1.1 ", 0, " Http-Client error ", httpCode, " \r\n");
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)httpStatusLine));
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"\r\n"));
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"Request failed\r\n\0"));
         }
 
-        deviceHttp->end();
+        devHttp->end();
         
         /*
         char buffer[1000];
@@ -260,18 +262,12 @@ void az_platform_sleep_msec(int32_t milliseconds)
 
 void setHttpClient(HTTPClient * httpClient)
 {
-  if (deviceHttp == NULL)
-  {
-      deviceHttp = httpClient;
-  }
+    devHttp = httpClient;
 }
 
 void setWiFiClient(WiFiClient * wifiClient)
 {
-  if (deviceWifiClient == NULL)
-  {
-      deviceWifiClient = wifiClient;
-  }
+    devWifiClient = wifiClient;
 }
 
 void setCaCert(const char * caCert)
