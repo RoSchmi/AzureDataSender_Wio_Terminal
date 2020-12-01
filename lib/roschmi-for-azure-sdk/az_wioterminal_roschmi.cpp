@@ -143,15 +143,16 @@ volatile size_t headerSize = strlen(theHeader_str);
     // az_span_to_str((char *)theBody, bodySize + 1, request->_internal.body);
     
     uint8_t * theBody = request->_internal.body._internal.ptr;
+    //uint8_t * theBody = (uint8_t *)"hallo";
 
     if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
     {       
         const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
         devHttp->collectHeaders(headerKeys, 5);
       
-        //int httpCode = devHttp->POST((char *)theBody);
+        int httpCode = devHttp->POST((char *)theBody);
 
-        int httpCode = devHttp->POST(theBody, strlen((char *)theBody));
+        //int httpCode = devHttp->POST(theBody, strlen((char *)theBody));
         //httpCode = -1;
           
         delay(1); 
