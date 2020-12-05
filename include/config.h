@@ -13,15 +13,16 @@
 //
 // Please select the transport protocol, http or https (recommended)
 // For https you must include the Root Certificate of your Azure Account
+// like here the baltimore_root_ca
 // Select the Sendinterval in minutes
 // Select the Invalidate Interval in minutes (Sensor values not actualized
 // within this interval are considered to be invalid)
-// like here the baltimore_root_ca
+
 //
 // The credentials of your WiFi router and the name and key of your
-// Azure Account have to be set in the file config_secret.h 
+// Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 0.5        // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 10.0   // Sendinterval in minutes                                       
                                         // is limited to be not below 1 second
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes

@@ -4,7 +4,7 @@
 #include <azure/core/az_span.h>
 #include <azure/core/az_result.h>
 
-#include "NTP.h"
+//#include "NTP.h"
 #include <time.h>
 
 #include "mbedtls/md.h"

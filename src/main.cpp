@@ -5,6 +5,14 @@
 // Settings like sendinterval, transport protocol and so on are to be made in /include/config.h
 
 
+  // I started from Azure Storage Blob Example see: 
+  // https://github.com/Azure/azure-sdk-for-c/blob/5c7444dfcd5f0b3bcf3aec2f7b62639afc8bd664/sdk/samples/storage/blobs/src/blobs_client_example.c
+
+  //For a BLOB the Basis-URI consists of the name of the account, the namen of the Container and the namen of the BLOB:
+  //https://myaccount.blob.core.windows.net/mycontainer/myblob
+  //https://docs.microsoft.com/de-de/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata
+
+
 #include <Arduino.h>
 #include <config.h>
 #include <config_secret.h>
@@ -18,7 +26,7 @@
 #include <rpcWiFi.h>
 #include <WiFiClientSecure.h>
 
-#include "WiFiUdp.h"
+//#include "WiFiUdp.h"
 
 
 #include "DateTime.h"
@@ -46,7 +54,6 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
 
-
 #include "TFT_eSPI.h"
 #include "Free_Fonts.h" //include the header file
 
@@ -72,6 +79,8 @@
 
 #include <azure/iot/az_iot_hub_client.h>
 
+#include "Time/Rs_time_helpers.h"
+
 
 // The PartitionKey may have a prefix to be distinguished, here: "Y2_" 
 const char * analogTablePartPrefix = (char *)"Y2_";
@@ -83,9 +92,7 @@ const bool augmentPartitionKey = true;
 const bool augmentTableNameWithYear = true;
 
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
-
 int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
-
 DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
 TFT_eSPI tft;
@@ -99,38 +106,34 @@ int current_text_line = 0;
 uint32_t loopCounter = 0;
 unsigned int insertCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
-volatile int64_t systimeNtpDelta = 0;
+volatile int32_t sysTimeNtpDelta = 0;
 
 volatile uint32_t previousMillis = 0;
 
 uint32_t ntpUpdateInterval = 60000;
+
 uint32_t lastNtpUpdate = 0;
 
 bool actualTimeIsDST = false;
 
-unsigned int localPort = 2390;      // local port to listen for UDP packets
 
-// RoSchmi
-//char timeServer[] = "time.nist.gov"; // external NTP server e.g. time.nist.gov
 char timeServer[] = "pool.ntp.org"; // external NTP server e.g. better pool.ntp.org
-
+unsigned int localPort = 2390;      // local port to listen for UDP packets
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
 
-// UTC
-unsigned long utcTime;
+
 
 bool ledState = false;
-char strData[100];
 
+
+unsigned long utcTime;
 DateTime dateTimeUTCNow;
 volatile uint32_t dateTimeUtcOldSeconds;
 volatile uint32_t dateTimeUtcNewSeconds;
 
-
 const char *ssid = IOT_CONFIG_WIFI_SSID;
 const char *password = IOT_CONFIG_WIFI_PASSWORD;
-
 
 WiFiUDP udp;
 
@@ -140,6 +143,8 @@ static HTTPClient * httpPtr = &http;
 
 // must be static !!
 static SysTime sysTime;
+
+Rs_time_helpers time_helpers;
 
 typedef const char* X509Certificate;
 
@@ -151,8 +156,6 @@ X509Certificate myX509Certificate = baltimore_root_ca;
 #else
   WiFiClient wifi_client;
 #endif
-
-
 
 // Set transport protocol as defined in config.h
 static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
@@ -273,11 +276,6 @@ void setup()
   wifi_client.setCACert(baltimore_root_ca);
   #endif
   
-  
-  //ntp.begin(true);      // false means not blocking
-  
-  //ntp.update();
-
   /*
   int ntpCounter = 0;
   while (!ntp.update())
@@ -291,9 +289,7 @@ void setup()
   lcd_log_line(itoa(ntpCounter, buf, 10));
   */
   
-  // Set Daylightsavingtime for central europe
-  //ntp.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
-  //ntp.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
+  
   
   //ntp.updateInterval(_UPDATE_INTERVAL_MINUTES(NTP < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000);  // Update from ntp (e.g. every 10 minutes)
   
@@ -332,6 +328,7 @@ void setup()
   {
     sysTime.begin(utcTime);
     dateTimeUTCNow = utcTime;
+    
 
   }
   else
@@ -344,27 +341,15 @@ void setup()
       delay(100);
     }   
   }
-   
   dateTimeUTCNow = sysTime.getTime();
+  time_helpers.update(dateTimeUTCNow);
 
+  // Set Daylightsavingtime for central europe
+  time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
+  time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
 
-  sprintf(buf, "%i %i %i", dateTimeUTCNow.hour(), dateTimeUTCNow.minute(), dateTimeUTCNow.second());
-  lcd_log_line((char *)buf);
-
-  //lcd_log_line((char *)ntp.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
-  //lcd_log_line((char *)ntp.formattedTime("%A %T"));        // Www hh:mm:ss
-
-  //ntp.stop();
-
-  
-    
-  // I started from Azure Storage Blob Example see: 
-  // https://github.com/Azure/azure-sdk-for-c/blob/5c7444dfcd5f0b3bcf3aec2f7b62639afc8bd664/sdk/samples/storage/blobs/src/blobs_client_example.c
-
-  //For a BLOB the Basis-URI consists of the name of the account, the namen of the Container and the namen of the BLOB:
-  //https://myaccount.blob.core.windows.net/mycontainer/myblob
-  //https://docs.microsoft.com/de-de/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata
-
+  lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
+  lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
 
   delay(5000);
   // Clear screen
@@ -413,8 +398,8 @@ void setup()
   }
   */
 
-  //dateTimeUTCNow = sysTime.getTime();
-  //TableClient table(myCloudStorageAccountPtr, myX509Certificate, httpPtr);
+  dateTimeUTCNow = sysTime.getTime();
+  
 
   String tableName = "AnalogTestValues";
   if (augmentTableNameWithYear)
@@ -433,17 +418,40 @@ void setup()
 void loop() 
 {
   
-  if (loopCounter++ % 2000 == 0)    //Toggle LED every 2000 th round to signal that App is running
+  if (loopCounter++ % 10000 == 0)   // Make decisions every 10000 th round and toggle Led to signal that App is running
   {
     volatile uint32_t currentMillis = millis();
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
-
-    if ((currentMillis - previousMillis) >= 20 * 1000)
-    {
-      previousMillis = currentMillis;
     
-      dateTimeUTCNow = actualizeSysTimeFromNtp();
+    //if (actRtcTime - lastNtpUpdate > 1 * 60 * 1000)
+    if ((currentMillis - previousMillis) >= 5 * 60 * 1000)
+    {
+        previousMillis = currentMillis;
+        dateTimeUTCNow = sysTime.getTime();
+        uint32_t actRtcTime = dateTimeUTCNow.secondstime();
+
+        int loopCtr = 0;
+        unsigned long  utcNtpTime = getNTPtime();    
+        /*
+        while ((loopCtr < 4) && utcTime == 0)
+        {
+          loopCtr++;
+          utcTime = getNTPtime();
+        }
+        */
+        if (utcNtpTime != 0 )
+        {       
+            dateTimeUTCNow = utcNtpTime;
+            sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
+            lastNtpUpdate = dateTimeUTCNow.secondstime();
+            char buffer[] = "Utc: YYYY-MM-DD hh:mm:ss";
+            dateTimeUTCNow.toString(buffer);
+            lcd_log_line((char *)buffer);  
+            
+            sysTime.setTime(dateTimeUTCNow);
+            timeNtpUpdateCounter++;   
+        }  
     }
     else
     {
@@ -453,26 +461,26 @@ void loop()
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
 
-  if (dataContainer.hasToBeSent())
-  {
-    // Retrieve edited sample values from container
-    SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
+      if (dataContainer.hasToBeSent())
+      {
+        // Retrieve edited sample values from container
+        SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
 
-    // Create time value to be stored in each table row (local time and offset to UTC)
+        // Create time value to be stored in each table row (local time and offset to UTC)
 
-    int timeZoneOffsetUTC = actualTimeIsDST ? TIMEZONE + DSTOFFSET : TIMEZONE;
-    //int timeZoneOffsetUTC = ntp.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+        int timeZoneOffsetUTC = actualTimeIsDST ? TIMEZONE + DSTOFFSET : TIMEZONE;
+        //int timeZoneOffsetUTC = ntp.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
 
 
-    char sampleTime[25] {0};
-    createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
+        char sampleTime[25] {0};
+        createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
 
-    // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
-    String tableName = "AnalogTestValues";  
-    if (augmentTableNameWithYear)
-    {
-      tableName += (dateTimeUTCNow.year());     
-    }
+        // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+        String tableName = "AnalogTestValues";  
+        if (augmentTableNameWithYear)
+        {
+          tableName += (dateTimeUTCNow.year());     
+        }
 
     // Create an Array of here 5 Properties
     // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
@@ -505,6 +513,7 @@ void loop()
     AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, propertyCount);
      
     // Print message on display
+    char strData[100];
     sprintf(strData, "   Trying to insert %u", insertCounter);   
     lcd_log_line(strData);
     
@@ -533,13 +542,14 @@ void loop()
   loopCounter++;
 }
 
-unsigned long getNTPtime() {
+unsigned long getNTPtime() 
+{
  
     // module returns a unsigned long time valus as secs since Jan 1, 1970 
     // unix time or 0 if a problem encounted
- 
     //only send data when connected
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED) 
+    {
         //initializes the UDP state
         //This initializes the transfer buffer
         udp.begin(WiFi.localIP(), localPort);
@@ -549,7 +559,8 @@ unsigned long getNTPtime() {
      
         delay(1000);
         
-        if (udp.parsePacket()) {
+        if (udp.parsePacket()) 
+        {
             Serial.println("udp packet received");
             Serial.println("");
             // We've received a packet, read the data from it
@@ -576,7 +587,7 @@ unsigned long getNTPtime() {
             // RoSchmi: inactivated timezone offset
             // long tzOffset = 28800UL;
             long tzOffset = 0UL;
- 
+
             // WA local time 
             unsigned long adjustedTime;
             return adjustedTime = epoch + tzOffset;
@@ -590,7 +601,8 @@ unsigned long getNTPtime() {
         // not calling ntp time frequently, stop releases resources
         udp.stop();
     }
-    else {
+    else 
+    {
         // network not connected
         return 0;
     }
@@ -671,7 +683,7 @@ float ReadAnalogSensor(int pAin)
 #ifdef USE_SIMULATED_SENSORVALUES
       #ifdef USE_TEST_VALUES
             // Here you can select that diagnostic values (for debugging)
-            // Are sent to your storage table
+            // are sent to your storage table
             double theRead = MAGIC_NUMBER_INVALID;
             switch (pAin)
             {
@@ -685,9 +697,10 @@ float ReadAnalogSensor(int pAin)
                 case 1:
                     {
                         //int32_t deltaSeconds = systimeNtpDelta;
-                        theRead = 2.5;
-                        //theRead = systimeNtpDelta > 140 ? 140 : systimeNtpDelta < - 40 ? -40 : (double)systimeNtpDelta;
+                        //theRead = 2.5;
+                        theRead = sysTimeNtpDelta > 140 ? 140 : sysTimeNtpDelta < - 40 ? -40 : (double)sysTimeNtpDelta;
                         
+                        volatile int dummy45 = 3;
                         //theRead = analog1.ReadRatio();
                     }
                     break;
@@ -731,41 +744,6 @@ float ReadAnalogSensor(int pAin)
   #endif
 #endif
 }
-
-
-DateTime actualizeSysTimeFromNtp()
-{
-  DateTime dateTimeUTCNow = sysTime.getTime();
-
-  int loopCtr = 0;
-  
-  utcTime = getNTPtime();
-  /*
-  while ((loopCtr < 4) && utcTime == 0)
-  {
-      loopCtr++;
-      utcTime = getNTPtime();
-  }
-  */
-  if (utcTime != 0 )
-  {
-    dateTimeUTCNow = utcTime;
-    char buffer[] = "YYYY MM DD hh mm ss";
-    dateTimeUTCNow.toString(buffer);
-    lcd_log_line((char *)buffer);   
-  }
-  else
-  {
-    volatile int dummy3 = 2;
-  }
-  
-  sysTime.setTime(dateTimeUTCNow);
-    
-  timeNtpUpdateCounter++;
-  
-  return dateTimeUTCNow;
-}
-
 
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime)
 {
