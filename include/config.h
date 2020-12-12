@@ -25,11 +25,17 @@
 #define SENDINTERVAL_MINUTES 10.0   // Sendinterval in minutes                                       
                                         // is limited to be not below 1 second
 
-#define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes
+#define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
                                         // (trunked to values between 1 - 60)
+                                        // (Sensor readings are considered to be invalid if not successsfully
+                                        // read within this timespan)
 
-#define NTP_UPDATE_INTERVAL_MINUTES 1    //  With this interval sytem time is updated
-                                        //  with internet time (is limited to not below 1 min)                           
+#define NTP_UPDATE_INTERVAL_MINUTES 5   //  With this interval sytem time is updated
+                                        //  with internet time (is limited to be not below 1 min)
+
+#define ANALOG_SENSOR_READ_INTERVAL_MILLIS 100   // Analog sensors are read with this interval                                      
+
+
 
 #define TIMEZONE 60              // TimeZone time difference to UTC in minutes
 #define DSTOFFSET 60             // DaylightSaving Time offset in minutes

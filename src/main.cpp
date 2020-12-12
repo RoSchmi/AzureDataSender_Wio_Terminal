@@ -108,11 +108,13 @@ unsigned int insertCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
 
-volatile uint32_t previousMillis = 0;
+volatile uint32_t previousNtpMillis = 0;
+volatile uint32_t previousSensorReadMillis = 0;
 
 uint32_t ntpUpdateInterval = 60000;
+uint32_t analogSensorReadInterval = 100;
 
-uint32_t lastNtpUpdate = 0;
+//uint32_t lastNtpUpdate = 0;
 
 bool actualTimeIsDST = false;
 
@@ -293,7 +295,9 @@ void setup()
   
   //ntp.updateInterval(_UPDATE_INTERVAL_MINUTES(NTP < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000);  // Update from ntp (e.g. every 10 minutes)
   
-  ntpUpdateInterval =  (NTP_UPDATE_INTERVAL_MINUTES < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000;                                                                                            // not below 5 min           
+  ntpUpdateInterval =  (NTP_UPDATE_INTERVAL_MINUTES < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000;
+  
+  analogSensorReadInterval =  ANALOG_SENSOR_READ_INTERVAL_MILLIS < 10 ? 10 : ANALOG_SENSOR_READ_INTERVAL_MILLIS > 5000 ? 5000: ANALOG_SENSOR_READ_INTERVAL_MILLIS;                                                                                     // not below 5 min           
      
   //lcd_log_line((char *)ntp.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   //lcd_log_line((char *)ntp.formattedTime("%A %T"));        // Www hh:mm:ss
@@ -412,39 +416,38 @@ void setup()
   az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 
-  previousMillis = millis();
+  previousNtpMillis = millis();
 }
 
 void loop() 
 {
   
-  if (loopCounter++ % 10000 == 0)   // Make decisions every 10000 th round and toggle Led to signal that App is running
+  if (loopCounter++ % 10000 == 0)   // Make decisions to send data every 10000 th round and toggle Led to signal that App is running
   {
     volatile uint32_t currentMillis = millis();
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
-    
-    //if (actRtcTime - lastNtpUpdate > 1 * 60 * 1000)
-    if ((currentMillis - previousMillis) >= 5 * 60 * 1000)
+
+    // Update RTC from Ntp when ntpUpdateInterval has expired
+    if ((currentMillis - previousNtpMillis) >= ntpUpdateInterval) 
     {
-        previousMillis = currentMillis;
+        previousNtpMillis = currentMillis;
         dateTimeUTCNow = sysTime.getTime();
         uint32_t actRtcTime = dateTimeUTCNow.secondstime();
 
         int loopCtr = 0;
-        unsigned long  utcNtpTime = getNTPtime();    
-        /*
+        unsigned long  utcNtpTime = getNTPtime();   // Get NTP time, try up to 4 times        
         while ((loopCtr < 4) && utcTime == 0)
         {
           loopCtr++;
           utcTime = getNTPtime();
         }
-        */
-        if (utcNtpTime != 0 )
+        
+        if (utcNtpTime != 0 )       // if NTP request was successful --> synchronize RTC 
         {       
             dateTimeUTCNow = utcNtpTime;
             sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
-            lastNtpUpdate = dateTimeUTCNow.secondstime();
+            //lastNtpUpdate = dateTimeUTCNow.secondstime();
             char buffer[] = "Utc: YYYY-MM-DD hh:mm:ss";
             dateTimeUTCNow.toString(buffer);
             lcd_log_line((char *)buffer);  
@@ -482,7 +485,7 @@ void loop()
           tableName += (dateTimeUTCNow.year());     
         }
 
-    // Create an Array of here 5 Properties
+    // Create an Array of, here, 5 Properties
     // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
 
     // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
