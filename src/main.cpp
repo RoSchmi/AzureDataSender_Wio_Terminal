@@ -204,6 +204,8 @@ void setup()
   Serial.println("\r\nStarting");
 
   char buf[100];
+  sprintf(buf, "RTL8720 Firmware: %s", rpc_system_version());
+  lcd_log_line(buf);
   lcd_log_line((char *)"Initial WiFi-Status:");
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     
@@ -225,21 +227,51 @@ void setup()
   if (!ssid || *ssid == 0x00 || strlen(ssid) > 31)
   {
     // Stay in endless loop
-      lcd_log_line((char *)"Invalid: SSID or PWD");
-      delay(1000);
+      while (true)
+      {
+        lcd_log_line((char *)"Invalid: SSID or PWD");
+        delay(1000);
+      }
   }
 
-  WiFi.begin(ssid, password);
-    
-  if (!WiFi.enableSTA(true))
+#if USE_WIFI_STATIC_IP == 1
+  IPAddress presetIp(192, 168, 1, 83);
+  IPAddress presetGateWay(192, 168, 1, 1);
+  IPAddress presetSubnet(255, 255, 255, 0);
+  IPAddress presetDnsServer1(8,8,8,8);
+  IPAddress presetDnsServer2(8,8,4,4);
+#endif
+
+WiFi.begin(ssid, password);
+ 
+if (!WiFi.enableSTA(true))
+{
+  while (true)
+  {
+    // Stay in endless loop
+    lcd_log_line((char *)"Connect failed.");
+    delay(1000);
+    }
+}
+
+
+#if USE_WIFI_STATIC_IP == 1
+  if (!WiFi.config(presetIp, presetGateWay, presetSubnet, presetDnsServer1, presetDnsServer2))
   {
     while (true)
     {
       // Stay in endless loop
-      lcd_log_line((char *)"Connect failed.");
-      delay(1000);
+    lcd_log_line((char *)"WiFi-Config failed");
+      delay(3000);
     }
   }
+  else
+  {
+    lcd_log_line((char *)"WiFi-Config successful");
+    delay(1000);
+  }
+  #endif
+  
 
   while (WiFi.status() != WL_CONNECTED)
   {  
@@ -247,6 +279,8 @@ void setup()
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     WiFi.begin(ssid, password);
   }
+
+  
 
    lcd_log_line((char *)"Connected, new Status:");
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
@@ -413,7 +447,7 @@ void setup()
 
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 
   previousNtpMillis = millis();
@@ -793,6 +827,26 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_
 
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
 {
+  /*
+    if (!wifi_client.available())
+    {
+      int dummy564r = 1;
+    }
+  */
+
+
+/*
+  #if TRANSPORT_PROTOCOL == 1
+  WiFiClientSecure wifi_client;
+#else
+  WiFiClient wifi_client;
+#endif
+
+#if TRANSPORT_PROTOCOL == 1
+  wifi_client.setCACert(baltimore_root_ca);
+#endif
+*/
+  
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Insert Entity

@@ -28,6 +28,20 @@ WiFiClient * devWifiClient = NULL;
 
 const char * _caCertificate;
 
+const char * PROGMEM mess1 = "-1 Connection refused\r\n\0";
+const char * PROGMEM mess2 = "-2 Send Header failed\r\n\0";
+const char * PROGMEM mess3 = "-3 Send Payload failed\r\n\0";
+const char * PROGMEM mess4 = "-4 Not connected\r\n\0";
+const char * PROGMEM mess5 = "-5 Connection lost\r\n\0";
+const char * PROGMEM mess6 = "-6 No Stream\r\n\0";
+const char * PROGMEM mess7 = "-7 No Http Server\r\n\0";
+const char * PROGMEM mess8 = "-8 Too less Ram\r\n\0";
+const char * PROGMEM mess9 = "-9 Error Encoding\r\n\0";
+const char * PROGMEM mess10 = "-10 Stream Write\r\n\0";
+const char * PROGMEM mess11 = "-11 Read Timeout\r\n\0";
+const char * PROGMEM mess12 = "-12 unspecified\r\n\0";
+
+
 
 /**
  * @brief uses AZ_HTTP_BUILDER to set up request and perform it.
@@ -150,7 +164,9 @@ volatile size_t headerSize = strlen(theHeader_str);
         const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
         devHttp->collectHeaders(headerKeys, 5);
       
-        int httpCode = devHttp->POST((char *)theBody);
+        int httpCode = -1;
+        
+        httpCode = devHttp->POST((char *)theBody);
 
         //int httpCode = devHttp->POST(theBody, strlen((char *)theBody));
         //httpCode = -1;
@@ -168,7 +184,7 @@ volatile size_t headerSize = strlen(theHeader_str);
         delay(2000);
         
         az_result appendResult;
-        char httpStatusLine[35] {0};
+        char httpStatusLine[40] {0};
         if (httpCode > 0)  // Request was successful
         {      
           sprintf((char *)httpStatusLine, "%s%i%s", "HTTP/1.1 ", httpCode, " ***\r\n");
@@ -187,16 +203,33 @@ volatile size_t headerSize = strlen(theHeader_str);
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)devHttp->getString().c_str()));
         }
         else
-        {      
-          if (httpCode < 0 && httpCode >= - 11)         
+        {
+          int httpCodeCopy = httpCode;
+          char messageBuffer[30] {0};
+
+          switch (httpCodeCopy)
           {
-            volatile int catchedCode = httpCode;
-          }
+            case -1: {
+              httpCode = 400;
+              strcpy(messageBuffer, mess1);
+              break;
+            }
+            case -2: {
+              httpCode = 401;
+              strcpy(messageBuffer, mess2);
+              break;
+            }
+            default: {
+              httpCode = 400;
+              strcpy(messageBuffer, mess12);
+            }
+          }     
+          
           // Request failed because of internal http-client error
-          sprintf((char *)httpStatusLine, "%s%i%s%i%s", "HTTP/1.1 ", 0, " Http-Client error ", httpCode, " \r\n");
+          sprintf((char *)httpStatusLine, "%s%i%s%i%s", "HTTP/1.1 ", httpCode, " Http-Client error ", httpCode, " \r\n");
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)httpStatusLine));
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"\r\n"));
-          appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)"Request failed\r\n\0"));
+          appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)messageBuffer));
         }
 
         devHttp->end();

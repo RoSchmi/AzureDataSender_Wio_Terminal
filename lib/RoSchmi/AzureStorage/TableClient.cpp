@@ -329,6 +329,8 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   az_http_response_status_line statusLine;
 
   az_result result = az_http_response_get_status_line(&http_response, &statusLine);
+
+  
   
  return statusLine.status_code;          
 }
