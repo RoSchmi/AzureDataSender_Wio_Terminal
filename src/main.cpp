@@ -24,14 +24,9 @@
 #include <AzureStorage/AnalogTableEntity.h>
 
 #include <rpcWiFi.h>
-#include <WiFiClientSecure.h>
-
-//#include "WiFiUdp.h"
-
 
 #include "DateTime.h"
 #include <time.h>
-//#include <Time.h>
 
 #include <Time/SysTime.h>
 
@@ -152,12 +147,13 @@ typedef const char* X509Certificate;
 
 X509Certificate myX509Certificate = baltimore_root_ca;
 
-
+/*
 #if TRANSPORT_PROTOCOL == 1
   WiFiClientSecure wifi_client;
 #else
   WiFiClient wifi_client;
 #endif
+*/
 
 // Set transport protocol as defined in config.h
 static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
@@ -307,10 +303,11 @@ if (!WiFi.enableSTA(true))
   lcd_log_line(buf);
   
 
-  
+  /*
   #if TRANSPORT_PROTOCOL == 1
   wifi_client.setCACert(baltimore_root_ca);
   #endif
+  */
   
   /*
   int ntpCounter = 0;
@@ -727,24 +724,19 @@ float ReadAnalogSensor(int pAin)
                 case 0:
                     {
                         theRead = timeNtpUpdateCounter;
-                        //theRead = analog0.ReadRatio();
+                        theRead = theRead / 10; 
                     }
                     break;
 
                 case 1:
-                    {
-                        //int32_t deltaSeconds = systimeNtpDelta;
-                        //theRead = 2.5;
-                        theRead = sysTimeNtpDelta > 140 ? 140 : sysTimeNtpDelta < - 40 ? -40 : (double)sysTimeNtpDelta;
-                        
-                        volatile int dummy45 = 3;
-                        //theRead = analog1.ReadRatio();
+                    {                       
+                        theRead = sysTimeNtpDelta > 140 ? 140 : sysTimeNtpDelta < - 40 ? -40 : (double)sysTimeNtpDelta;                      
                     }
                     break;
                 case 2:
                     {
-                        theRead = -0.30;
-                        //theRead = analog2.ReadRatio();
+                        theRead = insertCounter;
+                        theRead = theRead / 10;                      
                     }
                     break;
                 case 3:
@@ -827,27 +819,30 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_
 
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
 {
-  /*
-    if (!wifi_client.available())
-    {
-      int dummy564r = 1;
-    }
-  */
-
-
-/*
+  
   #if TRANSPORT_PROTOCOL == 1
-  WiFiClientSecure wifi_client;
+  static WiFiClientSecure wifi_client;
+  
 #else
-  WiFiClient wifi_client;
+  static WiFiClient wifi_client;
 #endif
 
 #if TRANSPORT_PROTOCOL == 1
+  wifi_client.setCACert(baltimore_root_ca); 
+#endif
+
+/*
+#if TRANSPORT_PROTOCOL == 1
   wifi_client.setCACert(baltimore_root_ca);
+  if (insertCounter == 2)
+  {
+    wifi_client.setCACert(baltimore_corrupt_root_ca);
+  }
 #endif
 */
-  
+
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
+  //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
 
   // Insert Entity
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity,  contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
@@ -857,23 +852,35 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
+    //delete &wifi_client;
     Serial.println((char *)codeString);
   }
   else
   {
     sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));   
     lcd_log_line((char *)codeString);
+    //delete &wifi_client;
     Serial.println((char *)codeString);
-    delay(5000);
+    delay(1000);
   }
 }
 
 
 
-
-
 az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName)
-{  
+{ 
+
+#if TRANSPORT_PROTOCOL == 1
+  static WiFiClientSecure wifi_client;
+#else
+  static WiFiClient wifi_client;
+#endif
+
+#if TRANSPORT_PROTOCOL == 1
+  wifi_client.setCACert(baltimore_root_ca);
+#endif
+
+
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Create Table
@@ -893,6 +900,8 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   }
 return statusCode;
 }
+
+
 
 
 

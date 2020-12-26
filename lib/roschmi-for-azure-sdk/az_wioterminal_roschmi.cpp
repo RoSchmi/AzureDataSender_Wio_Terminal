@@ -210,17 +210,62 @@ volatile size_t headerSize = strlen(theHeader_str);
           switch (httpCodeCopy)
           {
             case -1: {
-              httpCode = 400;
+              httpCode = 401;
               strcpy(messageBuffer, mess1);
               break;
             }
             case -2: {
-              httpCode = 401;
+              httpCode = 402;
               strcpy(messageBuffer, mess2);
               break;
             }
+            case -3: {
+              httpCode = 403;
+              strcpy(messageBuffer, mess3);
+              break;
+            }
+            case -4: {
+              httpCode = 404;
+              strcpy(messageBuffer, mess4);
+              break;
+            }
+            case -5: {
+              httpCode = 405;
+              strcpy(messageBuffer, mess5);
+              break;
+            }
+            case -6: {
+              httpCode = 406;
+              strcpy(messageBuffer, mess6);
+              break;
+            }
+            case -7: {
+              httpCode = 407;
+              strcpy(messageBuffer, mess7);
+              break;
+            }
+            case -8: {
+              httpCode = 408;
+              strcpy(messageBuffer, mess8);
+              break;
+            }
+            case -9: {
+              httpCode = 409;
+              strcpy(messageBuffer, mess9);
+              break;
+            }
+            case -10: {
+              httpCode = 410;
+              strcpy(messageBuffer, mess10);
+              break;
+            }
+            case -11: {
+              httpCode = 411;
+              strcpy(messageBuffer, mess11);
+              break;
+            }       
             default: {
-              httpCode = 400;
+              httpCode = 412;
               strcpy(messageBuffer, mess12);
             }
           }     
