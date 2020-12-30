@@ -559,6 +559,7 @@ void loop()
     az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str(), analogTableEntity, (char *)EtagBuffer);
     }
     
+    
     /*
     while (dateTimeUtcNewSeconds != dateTimeUTCNow.secondstime())
     {
@@ -821,15 +822,18 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 {
   
   #if TRANSPORT_PROTOCOL == 1
-  static WiFiClientSecure wifi_client;
-  
-#else
-  static WiFiClient wifi_client;
-#endif
+    static WiFiClientSecure wifi_client;
+  #else
+    static WiFiClient wifi_client;
+  #endif
 
-#if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(baltimore_root_ca); 
-#endif
+
+
+  #if TRANSPORT_PROTOCOL == 1
+    wifi_client.setCACert(baltimore_root_ca);
+    //wifi_client.setCACert(baltimore_corrupt_root_ca);
+  #endif
+
 
 /*
 #if TRANSPORT_PROTOCOL == 1
@@ -840,6 +844,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   }
 #endif
 */
+
 
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
   //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
@@ -878,6 +883,7 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
 
 #if TRANSPORT_PROTOCOL == 1
   wifi_client.setCACert(baltimore_root_ca);
+  //wifi_client.setCACert(baltimore_corrupt_root_ca);
 #endif
 
 
