@@ -444,7 +444,7 @@ if (!WiFi.enableSTA(true))
 
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 
   previousNtpMillis = millis();
