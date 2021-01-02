@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <Encryption/RoSchmi_encryption_helpers.h>
 #include <AzureStorage/roschmi_az_storage_tables.h>
+//#include <Time/Rs_time_helpers.h>
 
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
@@ -39,6 +40,7 @@ az_span  getAcceptType_az_span(AcceptType pAcceptType);
 int base64_decode(const char * input, char * output);
 int32_t dow(int32_t year, int32_t month, int32_t day);
 void GetTableXml(EntityProperty EntityProperties[], size_t propertyCount, az_span outSpan, size_t *outSpanLength);
+DateTime GetDateTimeFromDateHeader(az_span x_ms_time);
 
 void TableClient::CreateTableAuthorizationHeader(const char * content, const char * canonicalResource, const char * ptimeStamp, const char * pHttpVerb, az_span pContentType, char * pMD5HashHex, char * pAutorizationHeader, bool useSharedKeyLite)
 {  
@@ -336,7 +338,7 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
 }
         
 
- az_http_status_code TableClient::InsertTableEntity(const char * tableName, TableEntity pEntity, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
+ az_http_status_code TableClient::InsertTableEntity(const char * tableName, TableEntity pEntity, char * out_ETAG, DateTime * outResponsHeaderDate, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 {
   char * validTableName = (char *)tableName;
   if (strlen(tableName) >  MAX_TABLENAME_LENGTH)
@@ -398,7 +400,7 @@ const char * HttpVerb = "POST";
   const char * PROGMEM li21  = "</m:properties></content></entry>";
 
 
-  // Fills memory from 0x20029200 -  with pattern FF
+  // Fills memory from 0x20029200 -  with pattern AA55
   // So you can see at breakpoints how much of heap was used
   
   uint32_t * ptr_one;
@@ -514,24 +516,102 @@ az_span_copy_u8(remainder, 0);
 
     az_result result = az_http_response_get_status_line(&http_response, &statusLine);    
 
-    az_span etag = AZ_SPAN_FROM_STR("ETag");
+    az_span etagName = AZ_SPAN_FROM_STR("ETag");
     char keyBuf[20] {0};
     az_span headerKey = AZ_SPAN_FROM_BUFFER(keyBuf);
     char valueBuf[50] {0};
     az_span headerValue = AZ_SPAN_FROM_BUFFER(valueBuf);
+
+    az_span dateName = AZ_SPAN_FROM_STR("Date");
+    char dateBuf[60] {0};
+
+    //DateTime responseHeaderUtcTime;
     
     for (int i = 0; i < 5; i++)
     {
       az_result headerResult = az_http_response_get_next_header(&http_response, &headerKey, &headerValue);
-      if (az_span_is_content_equal(headerKey, etag))
+      if (az_span_is_content_equal(headerKey, etagName))
+      {       
+        az_span_to_str((char *)out_ETAG, 49, headerValue);
+      }
+      if (az_span_is_content_equal(headerKey, dateName))
       {
-        break;
+        az_span_to_str((char *)dateBuf, 59, headerValue);
+        //responseHeaderUtcTime = GetDateTimeFromDateHeader(headerValue);
+        *outResponsHeaderDate = GetDateTimeFromDateHeader(headerValue);
+        //*outResponsHeaderDate = responseHeaderUtcTime;
       }
     }
-
+    
     
     return statusLine.status_code; 
-}      
+}
+
+DateTime GetDateTimeFromDateHeader(az_span x_ms_time)
+{
+  char monthsOfTheYear[12][5] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+  bool parseError = false;
+  
+  az_span dayOfMonth = AZ_SPAN_FROM_STR("00");
+
+  int32_t theDay = 0;
+  int32_t theMonth = -1;
+  int32_t theYear = 0;
+  int32_t theHour = 0;
+  int32_t theMinute = 0;
+  int32_t theSecond = 0;
+  int32_t commaIndex = az_span_find(x_ms_time, AZ_SPAN_FROM_STR(", "));
+  if(commaIndex != -1)
+  {    
+    parseError = !az_result_succeeded(az_span_atoi32(az_span_slice(x_ms_time, commaIndex + 2, commaIndex + 4), &theDay)) ? true : parseError;
+    parseError = !az_result_succeeded(az_span_atoi32(az_span_slice(x_ms_time, commaIndex + 9, commaIndex + 13), &theYear)) ? true : parseError;
+    parseError = !az_result_succeeded(az_span_atoi32(az_span_slice(x_ms_time, commaIndex + 14, commaIndex + 16), &theHour)) ? true : parseError;
+    parseError = !az_result_succeeded(az_span_atoi32(az_span_slice(x_ms_time, commaIndex + 17, commaIndex + 19), &theMinute)) ? true : parseError;
+    parseError = !az_result_succeeded(az_span_atoi32(az_span_slice(x_ms_time, commaIndex + 20, commaIndex + 22), &theSecond)) ? true : parseError;
+    
+    int i = 0;
+    az_span month = az_span_slice(x_ms_time, commaIndex + 5, commaIndex + 8);
+    // For tests: 
+    //az_span month = az_span_slice(AZ_SPAN_LITERAL_FROM_STR("Fri, 01 Dec 2021 17:18:00"), commaIndex + 5, commaIndex + 8);
+    while(i < 12)
+    {
+    az_span indexMonth = az_span_create_from_str(monthsOfTheYear[i]);
+      if(az_span_is_content_equal(indexMonth, month))
+      {
+          theMonth = i;        
+          break;
+      }     
+      i++;  
+    }
+    if((theMonth < 0) || (theMonth > 11))
+    {  
+      parseError = true;
+    }  
+  }
+  else
+  {
+    parseError = true;  
+  }
+
+  parseError = theYear < 2000 ? true : theYear > 9999 ? true : parseError;
+  //parseError = theMonth < 0 ? true : theMonth > 11 ? true : parseError;
+  parseError = theDay < 1 ? true : theDay > 31 ? true : parseError;
+  parseError = theHour < 0 ? true : theHour > 23 ? true : parseError;
+  parseError = theMinute < 0 ? true : theMinute > 59 ? true : parseError;
+  parseError = theSecond < 0 ? true : theSecond > 59 ? true : parseError;
+
+  if(!parseError)
+  {
+    return DateTime((uint16_t)theYear, (uint8_t)theMonth + 1, (uint8_t)theDay, (uint8_t)theHour, (uint8_t)theMinute, (uint8_t)theSecond);
+  }
+  else
+  { 
+  return DateTime();
+  }
+}
+
+
 
 void appendCharArrayToSpan(az_span targetSpan, const size_t maxTargetLength, const size_t startIndex, size_t *outEndIndex, const char * stringToAppend)
 {

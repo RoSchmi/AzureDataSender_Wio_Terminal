@@ -554,7 +554,7 @@ void loop()
     // Keep track of tries to insert
     insertCounter++;
 
-    char EtagBuffer[20] {0};
+    char EtagBuffer[50] {0};
     // Store Entity to Azure Cloud   
     az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str(), analogTableEntity, (char *)EtagBuffer);
     }
@@ -850,14 +850,29 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
 
   // Insert Entity
-  az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity,  contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
+  DateTime responseHeaderDateTime = DateTime();
+  az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity, (char *)outInsertETag, &responseHeaderDateTime, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
 
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
-    //delete &wifi_client;
+
+    #ifdef UPDATE_TIME_FROM_AZURE_RESPONSE == 1
+    
+    dateTimeUTCNow = sysTime.getTime();
+    uint32_t actRtcTime = dateTimeUTCNow.secondstime();
+    unsigned long  utcHeaderDateTime = responseHeaderDateTime.secondstime();
+    dateTimeUTCNow = responseHeaderDateTime;
+    sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
+    sysTime.setTime(dateTimeUTCNow); 
+    char buffer[] = "AzureUtc: YYYY-MM-DD hh:mm:ss";
+    dateTimeUTCNow.toString(buffer);
+    lcd_log_line((char *)buffer);
+
+    #endif
+
     Serial.println((char *)codeString);
   }
   else

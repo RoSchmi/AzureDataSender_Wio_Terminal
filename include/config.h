@@ -30,8 +30,12 @@
                                         // (Sensor readings are considered to be invalid if not successsfully
                                         // read within this timespan)
 
-#define NTP_UPDATE_INTERVAL_MINUTES 5   //  With this interval sytem time is updated
-                                        //  with internet time (is limited to be not below 1 min)
+#define NTP_UPDATE_INTERVAL_MINUTES 1440   //  With this interval sytem time is updated via NTP
+                                           //  with internet time (is limited to be not below 1 min)
+
+#define UPDATE_TIME_FROM_AZURE_RESPONSE 1  // 1 = yes, 0 = no SystemTime is updated from the Post response from Azure
+                                           // with this option set you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
+                                           // long time, so that it 'never' happens                                      
 
 #define ANALOG_SENSOR_READ_INTERVAL_MILLIS 100   // Analog sensors are read with this interval                                      
 
