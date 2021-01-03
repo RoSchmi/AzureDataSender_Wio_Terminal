@@ -1,5 +1,5 @@
 // Application AzureDataSender_Wio_Terminal
-// Copyright RoSchmi 2020. License Apache 2.0
+// Copyright RoSchmi 2020, 2021. License Apache 2.0
 
 // Set WiFi and Azure credentials in file include/config_secret.h  (take config_secret_template.h as a template)
 // Settings like sendinterval, transport protocol and so on are to be made in /include/config.h
@@ -25,6 +25,7 @@
 
 #include <rpcWiFi.h>
 
+#include "SAMCrashMonitor.h"
 #include "DateTime.h"
 #include <time.h>
 
@@ -122,6 +123,7 @@ byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packe
 
 
 bool ledState = false;
+uint8_t lastResetCause = -1;
 
 
 unsigned long utcTime;
@@ -194,29 +196,40 @@ void setup()
   tft.setTextColor(TFT_BLACK);
 
   pinMode(LED_BUILTIN, OUTPUT);
-  lcd_log_line((char *)"Starting");
   
+  
+
   Serial.begin(9600);
   Serial.println("\r\nStarting");
-
+  
+  lcd_log_line((char *)"Start - Disable watchdog.");
+  SAMCrashMonitor::begin();
+  lastResetCause = SAMCrashMonitor::getResetCause();
+  lcd_log_line((char *)SAMCrashMonitor::getResetDescription().c_str());
+  SAMCrashMonitor::dump();
+  SAMCrashMonitor::disableWatchdog();
+  delay(1000);
   char buf[100];
+
   sprintf(buf, "RTL8720 Firmware: %s", rpc_system_version());
   lcd_log_line(buf);
   lcd_log_line((char *)"Initial WiFi-Status:");
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     
   delay(1000);
+  
   //Set WiFi to station mode and disconnect from an AP if it was previously connected
   WiFi.mode(WIFI_STA);
   lcd_log_line((char *)"First disconnecting, Status:");
   while (WiFi.status() != WL_DISCONNECTED)
   {
     WiFi.disconnect();
-    delay(200);
-    
+    delay(200); 
   }
+
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
   delay(1000);
+
   sprintf(buf, "Connecting to SSID: %s", ssid);
   lcd_log_line(buf);
 
@@ -242,9 +255,13 @@ WiFi.begin(ssid, password);
  
 if (!WiFi.enableSTA(true))
 {
+  #if WORK_WITH_WATCHDOG == 1   
+    int timeout = SAMCrashMonitor::enableWatchdog(4000);
+  #endif
+
   while (true)
   {
-    // Stay in endless loop
+    // Stay in endless loop to reboot through Watchdog
     lcd_log_line((char *)"Connect failed.");
     delay(1000);
     }
@@ -267,26 +284,43 @@ if (!WiFi.enableSTA(true))
     delay(1000);
   }
   #endif
-  
+
 
   while (WiFi.status() != WL_CONNECTED)
   {  
-    delay(2000);
+    delay(1000);
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     WiFi.begin(ssid, password);
   }
 
-  
-
    lcd_log_line((char *)"Connected, new Status:");
     lcd_log_line(itoa((int)WiFi.status(), buf, 10));
+
+  #if WORK_WITH_WATCHDOG == 1
+    
+    Serial.println(F("Enabling watchdog."));
+    int timeout = SAMCrashMonitor::enableWatchdog(4000);
+    sprintf(buf, "Watchdog enabled: %i %s", timeout, "ms");
+    lcd_log_line(buf);
+
+  #endif
   
   IPAddress localIpAddress = WiFi.localIP();
   IPAddress gatewayIp =  WiFi.gatewayIP();
   IPAddress subNetMask =  WiFi.subnetMask();
   IPAddress dnsServerIp = WiFi.dnsIP();
   
-  delay(1000);
+  
+// Wait for 4000 ms
+  for (int i = 0; i < 5; i++)
+  {
+    delay(1000);
+    #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+    #endif
+  }
+  
+
   current_text_line = 0;
   tft.fillScreen(TFT_WHITE);
     
@@ -349,7 +383,9 @@ if (!WiFi.enableSTA(true))
   
   //ntp.stop();
 
-  
+  #if WORK_WITH_WATCHDOG == 1
+    SAMCrashMonitor::iAmAlive();
+  #endif
 
   int getTimeCtr = 0; 
   utcTime = getNTPtime();
@@ -359,12 +395,14 @@ if (!WiFi.enableSTA(true))
       utcTime = getNTPtime();
   }
 
+  #if WORK_WITH_WATCHDOG == 1
+    SAMCrashMonitor::iAmAlive();
+  #endif
+
   if (utcTime != 0 )
   {
     sysTime.begin(utcTime);
     dateTimeUTCNow = utcTime;
-    
-
   }
   else
   {
@@ -376,6 +414,7 @@ if (!WiFi.enableSTA(true))
       delay(100);
     }   
   }
+  
   dateTimeUTCNow = sysTime.getTime();
   time_helpers.update(dateTimeUTCNow);
 
@@ -386,7 +425,17 @@ if (!WiFi.enableSTA(true))
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
 
-  delay(5000);
+  // Wait for 4000 ms
+  for (int i = 0; i < 5; i++)
+  {
+    delay(1000);
+    #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+    #endif
+  }
+  
+
+ 
   // Clear screen
   current_text_line = 0;
   tft.fillScreen(TFT_WHITE);
@@ -442,9 +491,12 @@ if (!WiFi.enableSTA(true))
   tableName += (dateTimeUTCNow.year());
   }
 
+  #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+    #endif
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
   
 
   previousNtpMillis = millis();
@@ -458,6 +510,10 @@ void loop()
     volatile uint32_t currentMillis = millis();
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
+
+    #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+    #endif
 
     // Update RTC from Ntp when ntpUpdateInterval has expired
     if ((currentMillis - previousNtpMillis) >= ntpUpdateInterval) 
@@ -834,6 +890,8 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     //wifi_client.setCACert(baltimore_corrupt_root_ca);
   #endif
 
+  
+
 
 /*
 #if TRANSPORT_PROTOCOL == 1
@@ -849,21 +907,29 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
   //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
 
+
+  #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+  #endif
   // Insert Entity
   DateTime responseHeaderDateTime = DateTime();
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity, (char *)outInsertETag, &responseHeaderDateTime, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
-
+  
+  #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+  #endif
+  
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
 
-    #ifdef UPDATE_TIME_FROM_AZURE_RESPONSE == 1
+    #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1
     
     dateTimeUTCNow = sysTime.getTime();
     uint32_t actRtcTime = dateTimeUTCNow.secondstime();
-    unsigned long  utcHeaderDateTime = responseHeaderDateTime.secondstime();
+    //unsigned long  utcHeaderDateTime = responseHeaderDateTime.secondstime();
     dateTimeUTCNow = responseHeaderDateTime;
     sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
     sysTime.setTime(dateTimeUTCNow); 
@@ -877,10 +943,21 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   }
   else
   {
+
     sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));   
     lcd_log_line((char *)codeString);
     //delete &wifi_client;
     Serial.println((char *)codeString);
+
+    #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+      #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through watchdog 
+        while(true)
+        {
+          delay(1000);
+        }
+      #endif
+    #endif
     delay(1000);
   }
 }

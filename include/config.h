@@ -22,7 +22,7 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 1.0   // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 1.0        // Sendinterval in minutes                                       
                                         // is limited to be not below 1 second
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
@@ -39,7 +39,10 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_MILLIS 100   // Analog sensors are read with this interval                                      
 
+#define WORK_WITH_WATCHDOG 1                    // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
+#define REBOOT_AFTER_FAILED_UPLOAD 1             // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
+                                                 // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 #define TIMEZONE 60              // TimeZone time difference to UTC in minutes
 #define DSTOFFSET 60             // DaylightSaving Time offset in minutes
