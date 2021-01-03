@@ -125,6 +125,8 @@ byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packe
 bool ledState = false;
 uint8_t lastResetCause = -1;
 
+uint32_t failedUploadCounter = 0;
+
 
 unsigned long utcTime;
 DateTime dateTimeUTCNow;
@@ -187,6 +189,18 @@ az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccount
 void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_span outSpan, size_t *outSpanLength);
 void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
 
+// Seems not to work
+void myCrashHandler(SAMCrashReport &report)
+{
+  uint32_t pcState = report.pc;
+  char buf[100];
+  sprintf(buf, "Pc: %i", pcState);
+  lcd_log_line(buf);
+  SAMCrashMonitor::dumpCrash(report);
+  int dummy56738 = 1;
+
+};
+
 void setup() 
 { 
   tft.begin();
@@ -204,10 +218,24 @@ void setup()
   
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
+
+  // Get last ResetCause
+  // Ext. Reset: 16
+  // WatchDog:   32
+  // BySystem:   64
   lastResetCause = SAMCrashMonitor::getResetCause();
   lcd_log_line((char *)SAMCrashMonitor::getResetDescription().c_str());
   SAMCrashMonitor::dump();
   SAMCrashMonitor::disableWatchdog();
+
+  // RoSchmi: Not sure if this works
+  SAMCrashMonitor::setUserCrashHandler(myCrashHandler);
+
+  // Logging can be activated here:
+  // Seeed_Arduino_rpcUnified/src/rpc_unified_log.h:
+  // ( https://forum.seeedstudio.com/t/rpcwifi-library-only-working-intermittently/255660/5 )
+
+  
   delay(1000);
   char buf[100];
 
@@ -652,8 +680,9 @@ unsigned long getNTPtime()
         
         if (udp.parsePacket()) 
         {
-            Serial.println("udp packet received");
-            Serial.println("");
+            //Serial.println("udp packet received");
+            //Serial.println("");
+
             // We've received a packet, read the data from it
             udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
  
@@ -798,8 +827,7 @@ float ReadAnalogSensor(int pAin)
                     break;
                 case 3:
                     {
-                        theRead = -65.40;
-                        //theRead = analog3.ReadRatio();
+                        theRead = lastResetCause;                       
                     }
                     break;
             }
@@ -918,7 +946,13 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
   #endif
-  
+
+  // RoSchmi for tests: to simulate failed upload
+  // statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
+
+
+  lastResetCause = 0;
+
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   { 
@@ -937,26 +971,40 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     dateTimeUTCNow.toString(buffer);
     lcd_log_line((char *)buffer);
 
-    #endif
-
-    Serial.println((char *)codeString);
+    #endif   
   }
-  else
-  {
+  else            // request failed
+  {               // note: internal error codes from -1 to -11 were converted for tests to error codes 401 to 411 since
+                  // negative values cannot be returned as 'az_http_status_code' 
+
+    failedUploadCounter++;
 
     sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));   
     lcd_log_line((char *)codeString);
-    //delete &wifi_client;
-    Serial.println((char *)codeString);
+    
+    #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through SystemReset
+
+        #if TRANSPORT_PROTOCOL == 1
+          NVIC_SystemReset();     // Makes Code 64
+        #endif
+        #if TRANSPORT_PROTOCOL == 0     // for http requests reboot after the second, not the first, failed request
+          if(failedUploadCounter > 1)
+          {
+            NVIC_SystemReset();     // Makes Code 64
+          }
+    #endif
+
+    #endif
 
     #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
-      #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through watchdog 
-        while(true)
+
+     /*
+        while(true)               // Makes WatchDog Reset: Code 32
         {
           delay(1000);
         }
-      #endif
+      */     
     #endif
     delay(1000);
   }
