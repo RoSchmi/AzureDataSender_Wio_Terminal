@@ -77,6 +77,9 @@
 
 #include "Time/Rs_time_helpers.h"
 
+//String analogTableName = "AnalogTestValues";
+  String analogTableName = "AnalogWorkValues";
+
 
 // The PartitionKey may have a prefix to be distinguished, here: "Y2_" 
 const char * analogTablePartPrefix = (char *)"Y2_";
@@ -142,6 +145,8 @@ HTTPClient http;
 
 static HTTPClient * httpPtr = &http;
 
+
+
 // must be static !!
 static SysTime sysTime;
 
@@ -201,6 +206,8 @@ void myCrashHandler(SAMCrashReport &report)
 
 };
 
+
+
 void setup() 
 { 
   tft.begin();
@@ -210,7 +217,6 @@ void setup()
   tft.setTextColor(TFT_BLACK);
 
   pinMode(LED_BUILTIN, OUTPUT);
-  
   
 
   Serial.begin(9600);
@@ -238,7 +244,7 @@ void setup()
   
   delay(1000);
   char buf[100];
-
+  
   sprintf(buf, "RTL8720 Firmware: %s", rpc_system_version());
   lcd_log_line(buf);
   lcd_log_line((char *)"Initial WiFi-Status:");
@@ -512,11 +518,10 @@ if (!WiFi.enableSTA(true))
 
   dateTimeUTCNow = sysTime.getTime();
   
-
-  String tableName = "AnalogTestValues";
+  String augmentedAnalogTableName = analogTableName;  
   if (augmentTableNameWithYear)
   {
-  tableName += (dateTimeUTCNow.year());
+    augmentedAnalogTableName += (dateTimeUTCNow.year());
   }
 
   #if WORK_WITH_WATCHDOG == 1
@@ -524,7 +529,7 @@ if (!WiFi.enableSTA(true))
     #endif
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str());
+  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
   
 
   previousNtpMillis = millis();
@@ -594,10 +599,10 @@ void loop()
         createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
 
         // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
-        String tableName = "AnalogTestValues";  
+        String augmentedAnalogTableName = analogTableName; 
         if (augmentTableNameWithYear)
         {
-          tableName += (dateTimeUTCNow.year());     
+          augmentedAnalogTableName += (dateTimeUTCNow.year());     
         }
 
     // Create an Array of, here, 5 Properties
@@ -640,7 +645,7 @@ void loop()
 
     char EtagBuffer[50] {0};
     // Store Entity to Azure Cloud   
-    az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)tableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+    az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
     }
     
     
@@ -907,6 +912,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   
   #if TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
+    //wifi_client.setHandshakeTimeout(3);
   #else
     static WiFiClient wifi_client;
   #endif
@@ -978,6 +984,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
                   // negative values cannot be returned as 'az_http_status_code' 
 
     failedUploadCounter++;
+    lastResetCause = 100;
 
     sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));   
     lcd_log_line((char *)codeString);

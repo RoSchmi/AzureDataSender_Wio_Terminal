@@ -127,7 +127,7 @@ volatile size_t headerSize = strlen(theHeader_str);
     }
     else
     {
-      devHttp->begin(* devWifiClient, host, port, resource, true);    
+      devHttp->begin(* devWifiClient, host, port, resource, true);        
     }
     
     char name_buffer[MAX_HEADERNAME_LENGTH +2] {0};
@@ -165,7 +165,7 @@ volatile size_t headerSize = strlen(theHeader_str);
         devHttp->collectHeaders(headerKeys, 5);
       
         int httpCode = -1;
-        
+
         httpCode = devHttp->POST((char *)theBody);
 
         //int httpCode = devHttp->POST(theBody, strlen((char *)theBody));

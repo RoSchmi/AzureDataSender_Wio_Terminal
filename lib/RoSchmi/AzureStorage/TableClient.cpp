@@ -141,7 +141,7 @@ TableClient::TableClient(CloudStorageAccount * account, const char * caCert, HTT
     _accountPtr = account;
     _caCert = caCert;
     _httpPtr = httpClient;
-    _wifiClient = wifiClient;
+    _wifiClient = wifiClient; 
 }
 TableClient::~TableClient()
 {};
@@ -320,7 +320,8 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   uploadOptions._internal.acceptType = acceptTypeAzSpan;
   uploadOptions._internal.contentType = contentTypeAzSpan;
   uploadOptions._internal.perferType = responseTypeAzSpan;
-
+  
+  
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
   setWiFiClient(_wifiClient);
