@@ -22,8 +22,15 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 1.0       // Sendinterval in minutes                                       
-                                        // is limited to be not below 1 second
+#define SENDINTERVAL_MINUTES 10.0                // Sendinterval in minutes                                       
+                                                // is limited to be not below 1 second
+// Names for Tables in Azure Account, please rules for Azure Tablenames (no underscore allowed and others)
+//#define ANALOG_TABLENAME "AnalogTestValues"     // Name of the Azure Table to store 4 analog Values
+#define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values
+#define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table
+#define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table
+#define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table
+#define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table                      
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
                                         // (trunked to values between 1 - 60)
@@ -39,9 +46,9 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_MILLIS 100   // Analog sensors are read with this interval                                      
 
-#define WORK_WITH_WATCHDOG 0                   // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 1                   // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 0             // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
+#define REBOOT_AFTER_FAILED_UPLOAD 1             // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
                                                  // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 #define TIMEZONE 60              // TimeZone time difference to UTC in minutes

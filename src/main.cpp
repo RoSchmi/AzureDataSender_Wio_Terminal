@@ -32,6 +32,7 @@
 #include <Time/SysTime.h>
 
 #include <SensorData/DataContainerWio.h>
+#include "SensorData/OnOffDataContainerWio.h"
 
 #include <azure/core/az_platform.h>
 //#include <platform.h>
@@ -78,7 +79,27 @@
 #include "Time/Rs_time_helpers.h"
 
 //String analogTableName = "AnalogTestValues";
-  String analogTableName = "AnalogWorkValues";
+String analogTableName = ANALOG_TABLENAME;
+
+const char OnOffTableName_1[25] = ON_OFF_TABLENAME_01;
+const char OnOffTableName_2[25] = ON_OFF_TABLENAME_02;
+const char OnOffTableName_3[25] = ON_OFF_TABLENAME_03;
+const char OnOffTableName_4[25] = ON_OFF_TABLENAME_04;
+
+typedef struct
+{ 
+    DateTime LastSendTime = DateTime();
+    TimeSpan OnTimeDay = TimeSpan(0);
+    int Year = 1900;
+}
+OnOffTableParams;
+
+OnOffTableParams OnOffTablesParamsArray[4];
+
+// For OnOffSensor01, must be created for OnOffSensor02 - OnOffSensor04 if needed       
+// static DateTime OnOffSensor01LastSendTime = DateTime();
+// static TimeSpan OnOffSensor01OnTimeDay = TimeSpan(0);
+// static int OnOffTable01Year = 1900;
 
 
 // The PartitionKey may have a prefix to be distinguished, here: "Y2_" 
@@ -93,6 +114,8 @@ const bool augmentTableNameWithYear = true;
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
 int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
 DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
+
+OnOffDataContainerWio onOffDataContainer;
 
 TFT_eSPI tft;
 int current_text_line = 0;
@@ -169,6 +192,20 @@ static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
 CloudStorageAccount myCloudStorageAccount(AZURE_CONFIG_ACCOUNT_NAME, AZURE_CONFIG_ACCOUNT_KEY, UseHttps_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 
+  static void button_handler_left() {
+  int state = digitalRead(BUTTON_3);
+  DateTime now = sysTime.getTime();
+  onOffDataContainer.SetNewOnOffValue(0, state == 0, now);
+}
+
+
+static void button_handler_right() {
+  int state = digitalRead(BUTTON_1);
+  DateTime now = sysTime.getTime();
+  onOffDataContainer.SetNewOnOffValue(1, state == 0, now); 
+}
+
+
 void lcd_log_line(char* line) {
     // clear line
     tft.fillRect(0, current_text_line * LCD_LINE_HEIGHT, 320, LCD_LINE_HEIGHT, TFT_WHITE);
@@ -221,6 +258,12 @@ void setup()
 
   Serial.begin(9600);
   Serial.println("\r\nStarting");
+
+  pinMode(BUTTON_1, INPUT);
+  pinMode(BUTTON_3, INPUT);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_1), button_handler_right, CHANGE);
+  onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
   
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
@@ -233,6 +276,11 @@ void setup()
   lcd_log_line((char *)SAMCrashMonitor::getResetDescription().c_str());
   SAMCrashMonitor::dump();
   SAMCrashMonitor::disableWatchdog();
+
+  // RoSchmi
+  OnOffTableParams OnOffTablesParamsArray[4];
+  volatile int theres = OnOffTablesParamsArray[0].Year;
+
 
   // RoSchmi: Not sure if this works
   SAMCrashMonitor::setUserCrashHandler(myCrashHandler);
@@ -584,69 +632,105 @@ void loop()
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
 
-      if (dataContainer.hasToBeSent())
+      if (onOffDataContainer.One_hasToBeBeSent())
       {
-        // Retrieve edited sample values from container
-        SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
+        OnOffSampleValueSet onOffSampleValueSet = onOffDataContainer.GetOnOffValueSet();
+        char * tabName = onOffSampleValueSet.OnOffSampleValues[0].tableName;
+        volatile int dummy467  = 1;
+      }
 
-        // Create time value to be stored in each table row (local time and offset to UTC)
-
+      if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent())
+      {
+         
+         // Create timezone offset to UTC value to be stored in each table row (local time and offset to UTC)
         int timeZoneOffsetUTC = actualTimeIsDST ? TIMEZONE + DSTOFFSET : TIMEZONE;
-        //int timeZoneOffsetUTC = ntp.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+         
+         // Buffer to hold sampletime
+         char sampleTime[25] {0};
+
+        // Create az_span to hold partitionkey
+        char partKeySpan[25] {0};
+        size_t partitionKeyLength = 0;
+        az_span partitionKey = AZ_SPAN_FROM_BUFFER(partKeySpan);
+        
+        // Create az_span to hold partitionkey
+        char rowKeySpan[25] {0};
+        size_t rowKeyLength = 0;
+        az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
 
 
-        char sampleTime[25] {0};
-        createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
-
-        // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
-        String augmentedAnalogTableName = analogTableName; 
-        if (augmentTableNameWithYear)
+        if (dataContainer.hasToBeSent())       // send analog values
         {
-          augmentedAnalogTableName += (dateTimeUTCNow.year());     
-        }
-
-    // Create an Array of, here, 5 Properties
-    // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
-
-    // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
-    // (SampleTime and 4 samplevalues)
-    size_t propertyCount = 5;
-    EntityProperty AnalogPropertiesArray[5];
-    AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
-    AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value).c_str(), (char *)"Edm.String");
-    AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].Value).c_str(), (char *)"Edm.String");
-    AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
-    AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
-  
-    // Create the PartitionKey (special format)
-    char partKeySpan[25] {0};
-    size_t partitionKeyLength = 0;
-    az_span partitionKey = AZ_SPAN_FROM_BUFFER(partKeySpan);
-    makePartitionKey(analogTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
-    partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
-
-    // Create the RowKey (special format)
-    char rowKeySpan[25] {0};
-    size_t rowKeyLength = 0;
-    az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
-    makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
-    rowKey = az_span_slice(rowKey, 0, rowKeyLength);
-  
-    // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
-    AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, propertyCount);
+          // Retrieve edited sample values from container
+          SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
      
-    // Print message on display
-    char strData[100];
-    sprintf(strData, "   Trying to insert %u", insertCounter);   
-    lcd_log_line(strData);
-    
-    // Keep track of tries to insert
-    insertCounter++;
+          createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
 
-    char EtagBuffer[50] {0};
-    // Store Entity to Azure Cloud   
-    az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+          // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+          String augmentedAnalogTableName = analogTableName; 
+          if (augmentTableNameWithYear)
+          {
+            augmentedAnalogTableName += (dateTimeUTCNow.year());     
+          }
+
+          // Create an Array of, here, 5 Properties
+          // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
+
+          // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
+          // (SampleTime and 4 samplevalues)
+          size_t propertyCount = 5;
+          EntityProperty AnalogPropertiesArray[5];
+          AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
+          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value).c_str(), (char *)"Edm.String");
+          AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].Value).c_str(), (char *)"Edm.String");
+          AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
+          AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
+  
+          // Create the PartitionKey (special format)
+          makePartitionKey(analogTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
+          partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
+
+          // Create the RowKey (special format)
+          makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+          rowKey = az_span_slice(rowKey, 0, rowKeyLength);
+  
+          // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
+          AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, propertyCount);
+     
+          // Print message on display
+          char strData[100];
+          sprintf(strData, "   Trying to insert %u", insertCounter);   
+          lcd_log_line(strData);
+    
+          // Keep track of tries to insert
+          insertCounter++;
+
+          char EtagBuffer[50] {0};
+          // Store Entity to Azure Cloud   
+          az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+        }
+        else                  // send On/Off values
+        {
+          OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
+                size_t propertyCount = 5;
+          EntityProperty OnOffPropertiesArray[5];
+
+          //string onTimeDayAsString = OnOffSensor01OnTimeDay.Days.ToString("D3") + "-" + OnOffSensor01OnTimeDay.Hours.ToString("D2") + ":" + OnOffSensor01OnTimeDay.Minutes.ToString("D2") + ":" + OnOffSensor01OnTimeDay.Seconds.ToString("D2");
+          char SampleTime[] = "0.01.2020";
+          char OnTimeDay[] = "0.01.2020";
+
+
+          OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
+          OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
+          OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
+          OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) SampleTime, (char *)"Edm.String");
+          OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) sampleTime, (char *)"Edm.String");
+          
+        }
+        
     }
+
+
     
     
     /*
