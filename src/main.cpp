@@ -277,9 +277,7 @@ void setup()
   SAMCrashMonitor::dump();
   SAMCrashMonitor::disableWatchdog();
 
-  // RoSchmi
-  OnOffTableParams OnOffTablesParamsArray[4];
-  volatile int theres = OnOffTablesParamsArray[0].Year;
+  
 
 
   // RoSchmi: Not sure if this works
@@ -500,6 +498,15 @@ if (!WiFi.enableSTA(true))
   dateTimeUTCNow = sysTime.getTime();
   time_helpers.update(dateTimeUTCNow);
 
+  // Set LastSendTime for OnOff Tables to actual DateTime
+  for (int i = 0; i < 4; i++)
+  {
+    OnOffTablesParamsArray[i].LastSendTime = dateTimeUTCNow;
+
+  }
+  
+
+
   // Set Daylightsavingtime for central europe
   time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
   time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
@@ -627,17 +634,20 @@ void loop()
     else
     {
       dateTimeUTCNow = sysTime.getTime();
+
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
-
+      
+      /*
       if (onOffDataContainer.One_hasToBeBeSent())
       {
         OnOffSampleValueSet onOffSampleValueSet = onOffDataContainer.GetOnOffValueSet();
         char * tabName = onOffSampleValueSet.OnOffSampleValues[0].tableName;
         volatile int dummy467  = 1;
       }
+      */
 
       if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent())
       {
@@ -715,15 +725,25 @@ void loop()
                 size_t propertyCount = 5;
           EntityProperty OnOffPropertiesArray[5];
 
-          //string onTimeDayAsString = OnOffSensor01OnTimeDay.Days.ToString("D3") + "-" + OnOffSensor01OnTimeDay.Hours.ToString("D2") + ":" + OnOffSensor01OnTimeDay.Minutes.ToString("D2") + ":" + OnOffSensor01OnTimeDay.Seconds.ToString("D2");
-          char SampleTime[] = "0.01.2020";
-          char OnTimeDay[] = "0.01.2020";
+          TimeSpan  onTime =  OnOffTablesParamsArray[0].OnTimeDay;
 
+          char OnTimeDay[15] = {0};
+
+          sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
+                     
+          createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
+       
+          TimeSpan TimeFromLast = dateTimeUTCNow.operator-(OnOffTablesParamsArray[0].LastSendTime);
+          char timefromLast[15] = {0};
+
+          sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
+           
+          OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
 
           OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
           OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
           OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
-          OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) SampleTime, (char *)"Edm.String");
+          OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
           OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) sampleTime, (char *)"Edm.String");
           
         }
