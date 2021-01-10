@@ -2,7 +2,7 @@
 // Copyright RoSchmi 2020, 2021. License Apache 2.0
 
 // Set WiFi and Azure credentials in file include/config_secret.h  (take config_secret_template.h as a template)
-// Settings like sendinterval, transport protocol and so on are to be made in /include/config.h
+// Settings like sendinterval, transport protocol, tablenames and so on are to be defined in /include/config.h
 
 
   // I started from Azure Storage Blob Example see: 
@@ -22,6 +22,7 @@
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
 #include <AzureStorage/AnalogTableEntity.h>
+#include <AzureStorage/OnOffTableEntity.h>
 
 #include <rpcWiFi.h>
 
@@ -78,19 +79,20 @@
 
 #include "Time/Rs_time_helpers.h"
 
-//String analogTableName = "AnalogTestValues";
-String analogTableName = ANALOG_TABLENAME;
+//String analogTableName = ANALOG_TABLENAME;
+const char analogTableName[45] = ANALOG_TABLENAME;
 
-const char OnOffTableName_1[25] = ON_OFF_TABLENAME_01;
-const char OnOffTableName_2[25] = ON_OFF_TABLENAME_02;
-const char OnOffTableName_3[25] = ON_OFF_TABLENAME_03;
-const char OnOffTableName_4[25] = ON_OFF_TABLENAME_04;
+const char OnOffTableName_1[45] = ON_OFF_TABLENAME_01;
+const char OnOffTableName_2[45] = ON_OFF_TABLENAME_02;
+const char OnOffTableName_3[45] = ON_OFF_TABLENAME_03;
+const char OnOffTableName_4[45] = ON_OFF_TABLENAME_04;
 
 typedef struct
 { 
     DateTime LastSendTime = DateTime();
     TimeSpan OnTimeDay = TimeSpan(0);
     int Year = 1900;
+    int insertCounter = 0;
 }
 OnOffTableParams;
 
@@ -102,8 +104,11 @@ OnOffTableParams OnOffTablesParamsArray[4];
 // static int OnOffTable01Year = 1900;
 
 
-// The PartitionKey may have a prefix to be distinguished, here: "Y2_" 
+// The PartitionKey for the analog table may have a prefix to be distinguished, here: "Y2_" 
 const char * analogTablePartPrefix = (char *)"Y2_";
+
+// The PartitionKey for the On/Off-tables may have a prefix to be distinguished, here: "Y2_" 
+const char * onOffTablePartPrefix = (char *)"Y2_";
 
 // The PartitinKey can be augmented with a string representing year and month (recommended)
 const bool augmentPartitionKey = true;
@@ -126,7 +131,7 @@ int current_text_line = 0;
 #define LCD_LINE_HEIGHT 18
 
 uint32_t loopCounter = 0;
-unsigned int insertCounter = 0;
+unsigned int insertCounterAnalogTable = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
 
@@ -234,7 +239,7 @@ void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
 // Seems not to work
 void myCrashHandler(SAMCrashReport &report)
 {
-  uint32_t pcState = report.pc;
+  int pcState = report.pc;
   char buf[100];
   sprintf(buf, "Pc: %i", pcState);
   lcd_log_line(buf);
@@ -242,8 +247,6 @@ void myCrashHandler(SAMCrashReport &report)
   int dummy56738 = 1;
 
 };
-
-
 
 void setup() 
 { 
@@ -584,7 +587,7 @@ if (!WiFi.enableSTA(true))
     #endif
   // RoSchmi: do not delete
   // The following line creates a table in the Azure Storage Account defined in config.h
-  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
+  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
   
 
   previousNtpMillis = millis();
@@ -649,6 +652,8 @@ void loop()
       }
       */
 
+      volatile bool One_has_TBS = onOffDataContainer.One_hasToBeBeSent();
+
       if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent())
       {
          
@@ -657,6 +662,11 @@ void loop()
          
          // Buffer to hold sampletime
          char sampleTime[25] {0};
+         
+        // Buffer to hold display message
+        char strData[100];
+
+        char EtagBuffer[50] {0};
 
         // Create az_span to hold partitionkey
         char partKeySpan[25] {0};
@@ -688,7 +698,7 @@ void loop()
 
           // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
           // (SampleTime and 4 samplevalues)
-          size_t propertyCount = 5;
+          size_t analogPropertyCount = 5;
           EntityProperty AnalogPropertiesArray[5];
           AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
           AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value).c_str(), (char *)"Edm.String");
@@ -705,24 +715,30 @@ void loop()
           rowKey = az_span_slice(rowKey, 0, rowKeyLength);
   
           // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
-          AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, propertyCount);
+          AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, analogPropertyCount);
      
-          // Print message on display
-          char strData[100];
-          sprintf(strData, "   Trying to insert %u", insertCounter);   
+          // Print message on display         
+          sprintf(strData, "   Trying to insert %u", insertCounterAnalogTable);   
           lcd_log_line(strData);
     
           // Keep track of tries to insert
-          insertCounter++;
+          insertCounterAnalogTable++;
 
-          char EtagBuffer[50] {0};
+          
           // Store Entity to Azure Cloud   
           az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
         }
         else                  // send On/Off values
         {
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
-                size_t propertyCount = 5;
+
+         // volatile bool One_has_TBS_2 = onOffDataContainer.One_hasToBeBeSent();
+
+          onOffDataContainer.Reset_hasToBeSent(0);
+          
+
+         // One_has_TBS_2 = onOffDataContainer.One_hasToBeBeSent();
+                
           EntityProperty OnOffPropertiesArray[5];
 
           TimeSpan  onTime =  OnOffTablesParamsArray[0].OnTimeDay;
@@ -732,6 +748,13 @@ void loop()
           sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
                      
           createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
+
+          // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+          String augmentedOnOffTableName = onOffValueSet.OnOffSampleValues[0].tableName;
+          if (augmentTableNameWithYear)
+          {
+            augmentedOnOffTableName += (dateTimeUTCNow.year());     
+          }
        
           TimeSpan TimeFromLast = dateTimeUTCNow.operator-(OnOffTablesParamsArray[0].LastSendTime);
           char timefromLast[15] = {0};
@@ -739,13 +762,29 @@ void loop()
           sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
            
           OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
-
+          size_t onOffPropertyCount = 5;
           OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
           OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
           OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
           OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
-          OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) sampleTime, (char *)"Edm.String");
+          OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) timefromLast, (char *)"Edm.String");
           
+          // Create the PartitionKey (special format)
+          makePartitionKey(onOffTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
+          partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
+
+          // Create the RowKey (special format)
+          makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+          rowKey = az_span_slice(rowKey, 0, rowKeyLength);
+  
+          // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
+          OnOffTableEntity onOffTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  OnOffPropertiesArray, onOffPropertyCount);
+          
+          OnOffTablesParamsArray[0].insertCounter++;
+
+          // Store Entity to Azure Cloud   
+          az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
+
         }
         
     }
@@ -930,7 +969,7 @@ float ReadAnalogSensor(int pAin)
                     break;
                 case 2:
                     {
-                        theRead = insertCounter;
+                        theRead = insertCounterAnalogTable;
                         theRead = theRead / 10;                      
                     }
                     break;
@@ -1034,7 +1073,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 /*
 #if TRANSPORT_PROTOCOL == 1
   wifi_client.setCACert(baltimore_root_ca);
-  if (insertCounter == 2)
+  if (insertCounterAnalog == 2)
   {
     wifi_client.setCACert(baltimore_corrupt_root_ca);
   }

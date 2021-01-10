@@ -12,7 +12,7 @@ typedef struct
     bool  lastState = true;
     bool  hasToBeSent = false;
     DateTime LastSwitchTime;
-    char tableName[20];
+    char tableName[50];
 }
 OnOffSampleValue; 
     

@@ -22,15 +22,15 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 1.0                // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 1.0               // Sendinterval in minutes                                       
                                                 // is limited to be not below 1 second
 // Names for Tables in Azure Account, please rules for Azure Tablenames (no underscore allowed and others)
 //#define ANALOG_TABLENAME "AnalogTestValues"     // Name of the Azure Table to store 4 analog Values
 #define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values
-#define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table
-#define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table
-#define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table
-#define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table                      
+#define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table  max length = 25
+#define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table  max length = 25
+#define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table  max length = 25
+#define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table  max length = 25                  
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
                                         // (trunked to values between 1 - 60)
