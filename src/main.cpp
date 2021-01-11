@@ -91,7 +91,6 @@ typedef struct
 { 
     DateTime LastSendTime = DateTime();
     TimeSpan OnTimeDay = TimeSpan(0);
-    int Year = 1900;
     int insertCounter = 0;
 }
 OnOffTableParams;
@@ -197,19 +196,26 @@ static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
 CloudStorageAccount myCloudStorageAccount(AZURE_CONFIG_ACCOUNT_NAME, AZURE_CONFIG_ACCOUNT_KEY, UseHttps_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 
-  static void button_handler_left() {
-  int state = digitalRead(BUTTON_3);
-  DateTime now = sysTime.getTime();
-  onOffDataContainer.SetNewOnOffValue(0, state == 0, now);
-}
-
-
-static void button_handler_right() {
+static void button_handler_right() 
+{
   int state = digitalRead(BUTTON_1);
   DateTime now = sysTime.getTime();
-  onOffDataContainer.SetNewOnOffValue(1, state == 0, now); 
+  onOffDataContainer.SetNewOnOffValue(0, state == 0, now); 
 }
 
+static void button_handler_mid() 
+{
+  volatile int state = digitalRead(BUTTON_2);
+  DateTime now = sysTime.getTime();
+  onOffDataContainer.SetNewOnOffValue(1, state == 0, now);
+}
+
+static void button_handler_left() 
+{
+  volatile int state = digitalRead(BUTTON_3);
+  DateTime now = sysTime.getTime();
+  onOffDataContainer.SetNewOnOffValue(2, state == 0, now);
+}
 
 void lcd_log_line(char* line) {
     // clear line
@@ -264,9 +270,18 @@ void setup()
 
   pinMode(BUTTON_1, INPUT);
   pinMode(BUTTON_3, INPUT);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_1), button_handler_right, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_2), button_handler_mid, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
+  
   onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
+  // Initialize State of 4 On/Off-sensor representations (Application specific)
+  // and of the inverter flag 
+  for (int i = 0; i < 4; i++)
+  {
+    onOffDataContainer.PresetOnOffState(i, false, true);
+    onOffDataContainer.Set_Inverter(i, true);
+  }
   
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
@@ -662,10 +677,11 @@ void loop()
          
          // Buffer to hold sampletime
          char sampleTime[25] {0};
-         
+
         // Buffer to hold display message
         char strData[100];
 
+        // Buffer to hold returned Etag
         char EtagBuffer[50] {0};
 
         // Create az_span to hold partitionkey
@@ -732,61 +748,78 @@ void loop()
         {
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
 
-         // volatile bool One_has_TBS_2 = onOffDataContainer.One_hasToBeBeSent();
-
-          onOffDataContainer.Reset_hasToBeSent(0);
-          
-
-         // One_has_TBS_2 = onOffDataContainer.One_hasToBeBeSent();
-                
-          EntityProperty OnOffPropertiesArray[5];
-
-          TimeSpan  onTime =  OnOffTablesParamsArray[0].OnTimeDay;
-
-          char OnTimeDay[15] = {0};
-
-          sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
-                     
-          createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
-
-          // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
-          String augmentedOnOffTableName = onOffValueSet.OnOffSampleValues[0].tableName;
-          if (augmentTableNameWithYear)
+         
+          for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables
           {
-            augmentedOnOffTableName += (dateTimeUTCNow.year());     
-          }
+            if (onOffValueSet.OnOffSampleValues[i].hasToBeSent)
+            {
+              onOffDataContainer.Reset_hasToBeSent(i);     
+              EntityProperty OnOffPropertiesArray[5];
+              TimeSpan  onTime =  OnOffTablesParamsArray[0].OnTimeDay;
+              char OnTimeDay[15] = {0};
+              sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
+              createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
+
+              
+
+              // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+              String augmentedOnOffTableName = onOffValueSet.OnOffSampleValues[i].tableName;
+              if (augmentTableNameWithYear)
+              {
+                augmentedOnOffTableName += (dateTimeUTCNow.year());     
+              }
+              DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
+
+              volatile uint16_t localYear = localTime.year();
+              volatile uint16_t structYear =  onOffValueSet.OnOffSampleValues[i].Year;
+              
+              // Create table if table doesn't exist
+              if ((int)localTime.year() != onOffValueSet.OnOffSampleValues[i].Year)
+              {
+                 az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str());
+                 
+                 if ((theResult == AZ_HTTP_STATUS_CODE_CONFLICT) || (theResult == AZ_HTTP_STATUS_CODE_CREATED))
+                 {
+                    onOffDataContainer.Set_Year(i, localTime.year());
+                 }
+                 else
+                 {
+                    NVIC_SystemReset();     // Makes Code 64
+                 }
+              }
        
-          TimeSpan TimeFromLast = dateTimeUTCNow.operator-(OnOffTablesParamsArray[0].LastSendTime);
-          char timefromLast[15] = {0};
-
-          sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
+              TimeSpan TimeFromLast = dateTimeUTCNow.operator-(OnOffTablesParamsArray[i].LastSendTime);
+              char timefromLast[15] = {0};
+              sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
            
-          OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
-          size_t onOffPropertyCount = 5;
-          OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
-          OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", (char *)(onOffValueSet.OnOffSampleValues[0].actState ? "Off" : "On"), (char *)"Edm.String");
-          OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
-          OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
-          OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) timefromLast, (char *)"Edm.String");
+              OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
+              size_t onOffPropertyCount = 5;
+              OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", onOffValueSet.OnOffSampleValues[i].inverter ? (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "Off" : "On"), (char *)"Edm.String");
+              OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", onOffValueSet.OnOffSampleValues[i].inverter ? (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "Off" : "On"), (char *)"Edm.String");
+              OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
+              OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
+              OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) timefromLast, (char *)"Edm.String");
           
-          // Create the PartitionKey (special format)
-          makePartitionKey(onOffTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
-          partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
+              // Create the PartitionKey (special format)
+              makePartitionKey(onOffTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
+              partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
 
-          // Create the RowKey (special format)
-          makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
-          rowKey = az_span_slice(rowKey, 0, rowKeyLength);
+              // Create the RowKey (special format)
+              makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+              rowKey = az_span_slice(rowKey, 0, rowKeyLength);
   
-          // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
-          OnOffTableEntity onOffTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  OnOffPropertiesArray, onOffPropertyCount);
+              // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
+              OnOffTableEntity onOffTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  OnOffPropertiesArray, onOffPropertyCount);
           
-          OnOffTablesParamsArray[0].insertCounter++;
+              OnOffTablesParamsArray[0].insertCounter++;
 
-          // Store Entity to Azure Cloud   
-          az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
-
-        }
-        
+              // Store Entity to Azure Cloud   
+              az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
+              break; // Send only one in each round of loop 
+            }
+               
+          }
+        } 
     }
 
 
@@ -1176,6 +1209,10 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   //wifi_client.setCACert(baltimore_corrupt_root_ca);
 #endif
 
+#if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+#endif
+
 
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
@@ -1184,7 +1221,10 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
-  { 
+  {
+    #if WORK_WITH_WATCHDOG == 1
+      SAMCrashMonitor::iAmAlive();
+    #endif
     sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
   }
@@ -1192,7 +1232,7 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   {
     sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));    
     lcd_log_line((char *)codeString);
-    delay(5000);
+    delay(1000);   
   }
 return statusCode;
 }

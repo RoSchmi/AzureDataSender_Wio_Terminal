@@ -10,6 +10,7 @@ typedef struct
 {
     float  Value = 999.9;
     DateTime LastSendTime;
+    int Year = 1900;
 }
 SampleValue; 
     

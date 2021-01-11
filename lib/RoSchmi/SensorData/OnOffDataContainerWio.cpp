@@ -27,17 +27,32 @@ const char * tableName_2, const char * tableName_3, const char * tableName_4)
     }
 }
 
-
+// If state is different to the value it had before, actstate is changed and lastState
+// is set to the value which actstate was before
+// LastSwitchTime is set to the value passed in parameter time
+// The hasToBeSent flag is set
 void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTime time)
 {
      if (state != onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState)
-     {
-        onOffSampleValueSet.OnOffSampleValues[sensorIndex].lastState = !state;
+     {        
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].lastState = 
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState;               
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState = state;
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime = time;
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = true;
      }
-} 
+}
+
+
+void OnOffDataContainerWio::PresetOnOffState(int sensorIndex, bool state, bool lastState, DateTime time)
+{ 
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].lastState = lastState;
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState = state;
+    if(time != nullptr)
+    {
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime = time;
+    }
+}
 
 OnOffSampleValueSet OnOffDataContainerWio::GetOnOffValueSet()
 {
@@ -47,6 +62,17 @@ OnOffSampleValueSet OnOffDataContainerWio::GetOnOffValueSet()
 void OnOffDataContainerWio::Reset_hasToBeSent(int sensorIndex)
 {
     onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = false;  
+}
+
+void OnOffDataContainerWio::Set_Inverter(int sensorIndex, bool invertState)
+{
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].inverter = invertState;  
+}
+
+void OnOffDataContainerWio::Set_Year(int sensorIndex, int year)
+
+{
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].Year = year;
 }
 
 bool OnOffDataContainerWio::One_hasToBeBeSent()
