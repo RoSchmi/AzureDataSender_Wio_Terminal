@@ -5,7 +5,7 @@
 // Settings like sendinterval, transport protocol, tablenames and so on are to be defined in /include/config.h
 
 
-  // I started from Azure Storage Blob Example see: 
+  // I started to make this App from the Azure Storage Blob Example see: 
   // https://github.com/Azure/azure-sdk-for-c/blob/5c7444dfcd5f0b3bcf3aec2f7b62639afc8bd664/sdk/samples/storage/blobs/src/blobs_client_example.c
 
   //For a BLOB the Basis-URI consists of the name of the account, the namen of the Container and the namen of the BLOB:
@@ -79,29 +79,12 @@
 
 #include "Time/Rs_time_helpers.h"
 
-//String analogTableName = ANALOG_TABLENAME;
 const char analogTableName[45] = ANALOG_TABLENAME;
 
 const char OnOffTableName_1[45] = ON_OFF_TABLENAME_01;
 const char OnOffTableName_2[45] = ON_OFF_TABLENAME_02;
 const char OnOffTableName_3[45] = ON_OFF_TABLENAME_03;
 const char OnOffTableName_4[45] = ON_OFF_TABLENAME_04;
-
-typedef struct
-{ 
-    DateTime LastSendTime = DateTime();
-    TimeSpan OnTimeDay = TimeSpan(0);
-    int insertCounter = 0;
-}
-OnOffTableParams;
-
-OnOffTableParams OnOffTablesParamsArray[4];
-
-// For OnOffSensor01, must be created for OnOffSensor02 - OnOffSensor04 if needed       
-// static DateTime OnOffSensor01LastSendTime = DateTime();
-// static TimeSpan OnOffSensor01OnTimeDay = TimeSpan(0);
-// static int OnOffTable01Year = 1900;
-
 
 // The PartitionKey for the analog table may have a prefix to be distinguished, here: "Y2_" 
 const char * analogTablePartPrefix = (char *)"Y2_";
@@ -117,6 +100,7 @@ const bool augmentTableNameWithYear = true;
 
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
 int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
+
 DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
 OnOffDataContainerWio onOffDataContainer;
@@ -140,23 +124,15 @@ volatile uint32_t previousSensorReadMillis = 0;
 uint32_t ntpUpdateInterval = 60000;
 uint32_t analogSensorReadInterval = 100;
 
-//uint32_t lastNtpUpdate = 0;
-
-bool actualTimeIsDST = false;
-
-
 char timeServer[] = "pool.ntp.org"; // external NTP server e.g. better pool.ntp.org
 unsigned int localPort = 2390;      // local port to listen for UDP packets
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
 
-
-
 bool ledState = false;
 uint8_t lastResetCause = -1;
 
 uint32_t failedUploadCounter = 0;
-
 
 unsigned long utcTime;
 DateTime dateTimeUTCNow;
@@ -172,8 +148,6 @@ HTTPClient http;
 
 static HTTPClient * httpPtr = &http;
 
-
-
 // must be static !!
 static SysTime sysTime;
 
@@ -183,14 +157,6 @@ typedef const char* X509Certificate;
 
 X509Certificate myX509Certificate = baltimore_root_ca;
 
-/*
-#if TRANSPORT_PROTOCOL == 1
-  WiFiClientSecure wifi_client;
-#else
-  WiFiClient wifi_client;
-#endif
-*/
-
 // Set transport protocol as defined in config.h
 static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
 CloudStorageAccount myCloudStorageAccount(AZURE_CONFIG_ACCOUNT_NAME, AZURE_CONFIG_ACCOUNT_KEY, UseHttps_State);
@@ -199,24 +165,31 @@ CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 static void button_handler_right() 
 {
   int state = digitalRead(BUTTON_1);
-  DateTime now = sysTime.getTime();
-  onOffDataContainer.SetNewOnOffValue(0, state == 0, now); 
+  DateTime utcNow = sysTime.getTime();
+  time_helpers.update(utcNow);
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  onOffDataContainer.SetNewOnOffValue(0, state == 0, utcNow, timeZoneOffsetUTC); 
 }
 
 static void button_handler_mid() 
 {
   volatile int state = digitalRead(BUTTON_2);
-  DateTime now = sysTime.getTime();
-  onOffDataContainer.SetNewOnOffValue(1, state == 0, now);
+  DateTime utcNow = sysTime.getTime();
+  time_helpers.update(utcNow);
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  onOffDataContainer.SetNewOnOffValue(1, state == 0, utcNow, timeZoneOffsetUTC);
 }
 
 static void button_handler_left() 
 {
   volatile int state = digitalRead(BUTTON_3);
-  DateTime now = sysTime.getTime();
-  onOffDataContainer.SetNewOnOffValue(2, state == 0, now);
+  DateTime utcNow = sysTime.getTime();
+  time_helpers.update(utcNow);
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  onOffDataContainer.SetNewOnOffValue(2, state == 0, utcNow, timeZoneOffsetUTC);
 }
 
+// Routine to send messages to the display
 void lcd_log_line(char* line) {
     // clear line
     tft.fillRect(0, current_text_line * LCD_LINE_HEIGHT, 320, LCD_LINE_HEIGHT, TFT_WHITE);
@@ -264,7 +237,6 @@ void setup()
 
   pinMode(LED_BUILTIN, OUTPUT);
   
-
   Serial.begin(9600);
   Serial.println("\r\nStarting");
 
@@ -275,12 +247,13 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
   
   onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
-  // Initialize State of 4 On/Off-sensor representations (Application specific)
-  // and of the inverter flag 
+  // Initialize State of 4 On/Off-sensor representations 
+  // and of the inverter flags (Application specific)
   for (int i = 0; i < 4; i++)
   {
     onOffDataContainer.PresetOnOffState(i, false, true);
-    onOffDataContainer.Set_Inverter(i, true);
+    onOffDataContainer.Set_OutInverter(i, true);
+    onOffDataContainer.Set_InputInverter(i, false);
   }
   
   lcd_log_line((char *)"Start - Disable watchdog.");
@@ -295,9 +268,6 @@ void setup()
   SAMCrashMonitor::dump();
   SAMCrashMonitor::disableWatchdog();
 
-  
-
-
   // RoSchmi: Not sure if this works
   SAMCrashMonitor::setUserCrashHandler(myCrashHandler);
 
@@ -305,7 +275,6 @@ void setup()
   // Seeed_Arduino_rpcUnified/src/rpc_unified_log.h:
   // ( https://forum.seeedstudio.com/t/rpcwifi-library-only-working-intermittently/255660/5 )
 
-  
   delay(1000);
   char buf[100];
   
@@ -314,7 +283,7 @@ void setup()
   lcd_log_line((char *)"Initial WiFi-Status:");
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
     
-  delay(1000);
+  delay(500);
   
   //Set WiFi to station mode and disconnect from an AP if it was previously connected
   WiFi.mode(WIFI_STA);
@@ -326,7 +295,7 @@ void setup()
   }
 
   lcd_log_line(itoa((int)WiFi.status(), buf, 10));
-  delay(1000);
+  delay(500);
 
   sprintf(buf, "Connecting to SSID: %s", ssid);
   lcd_log_line(buf);
@@ -365,7 +334,6 @@ if (!WiFi.enableSTA(true))
     }
 }
 
-
 #if USE_WIFI_STATIC_IP == 1
   if (!WiFi.config(presetIp, presetGateWay, presetSubnet, presetDnsServer1, presetDnsServer2))
   {
@@ -382,7 +350,6 @@ if (!WiFi.enableSTA(true))
     delay(1000);
   }
   #endif
-
 
   while (WiFi.status() != WL_CONNECTED)
   {  
@@ -407,10 +374,9 @@ if (!WiFi.enableSTA(true))
   IPAddress gatewayIp =  WiFi.gatewayIP();
   IPAddress subNetMask =  WiFi.subnetMask();
   IPAddress dnsServerIp = WiFi.dnsIP();
-  
-  
-// Wait for 4000 ms
-  for (int i = 0; i < 5; i++)
+   
+// Wait for 2000 ms
+  for (int i = 0; i < 3; i++)
   {
     delay(1000);
     #if WORK_WITH_WATCHDOG == 1
@@ -418,7 +384,6 @@ if (!WiFi.enableSTA(true))
     #endif
   }
   
-
   current_text_line = 0;
   tft.fillScreen(TFT_WHITE);
     
@@ -434,30 +399,6 @@ if (!WiFi.enableSTA(true))
   sprintf(buf, "Protocol: %s", UseHttps_State ? (char *)"https" : (char *)"http");
   lcd_log_line(buf);
   
-
-  /*
-  #if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(baltimore_root_ca);
-  #endif
-  */
-  
-  /*
-  int ntpCounter = 0;
-  while (!ntp.update())
-  {
-    ntpCounter++;
-    previousMillis = millis();
-    
-    while (millis() - previousMillis <= 200)
-    { }   
-  }
-  lcd_log_line(itoa(ntpCounter, buf, 10));
-  */
-  
-  
-  
-  //ntp.updateInterval(_UPDATE_INTERVAL_MINUTES(NTP < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000);  // Update from ntp (e.g. every 10 minutes)
-  
   ntpUpdateInterval =  (NTP_UPDATE_INTERVAL_MINUTES < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000;
   
   analogSensorReadInterval =  ANALOG_SENSOR_READ_INTERVAL_MILLIS < 10 ? 10 : ANALOG_SENSOR_READ_INTERVAL_MILLIS > 5000 ? 5000: ANALOG_SENSOR_READ_INTERVAL_MILLIS;                                                                                     // not below 5 min           
@@ -471,16 +412,8 @@ if (!WiFi.enableSTA(true))
                 (uint8_t)now.hour(), (uint8_t)now.minute(), (uint8_t)now.second());
   */
 
-  
   //DateTime now = DateTime(F((char *)ntp.formattedTime("%d. %B %Y")), F((char *)ntp.formattedTime("%A %T")));
   
-  //dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
-
-  //dateTimeUTCNow = DateTime((uint16_t) ntp.year(), (uint8_t)ntp.month(), (uint8_t)ntp.day(),
-  //             (uint8_t)ntp.hours(), (uint8_t)ntp.minutes(), (uint8_t)ntp.seconds());
-  
-  //ntp.stop();
-
   #if WORK_WITH_WATCHDOG == 1
     SAMCrashMonitor::iAmAlive();
   #endif
@@ -516,24 +449,16 @@ if (!WiFi.enableSTA(true))
   dateTimeUTCNow = sysTime.getTime();
   time_helpers.update(dateTimeUTCNow);
 
-  // Set LastSendTime for OnOff Tables to actual DateTime
-  for (int i = 0; i < 4; i++)
-  {
-    OnOffTablesParamsArray[i].LastSendTime = dateTimeUTCNow;
-
-  }
-  
-
-
   // Set Daylightsavingtime for central europe
+  // The following two lines must be adapted to your DayLightSavings zone
   time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
   time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
 
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
 
-  // Wait for 4000 ms
-  for (int i = 0; i < 5; i++)
+  // Wait for 2000 ms
+  for (int i = 0; i < 3; i++)
   {
     delay(1000);
     #if WORK_WITH_WATCHDOG == 1
@@ -541,13 +466,10 @@ if (!WiFi.enableSTA(true))
     #endif
   }
   
-
- 
   // Clear screen
   current_text_line = 0;
   tft.fillScreen(TFT_WHITE);
   
-
   // This code snippet can be used to get the addresses of the heap
   // and to 
   uint32_t * ptr_one;
@@ -590,12 +512,13 @@ if (!WiFi.enableSTA(true))
   */
 
   dateTimeUTCNow = sysTime.getTime();
-  
+
   String augmentedAnalogTableName = analogTableName;  
   if (augmentTableNameWithYear)
   {
     augmentedAnalogTableName += (dateTimeUTCNow.year());
   }
+  
 
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
@@ -604,13 +527,11 @@ if (!WiFi.enableSTA(true))
   // The following line creates a table in the Azure Storage Account defined in config.h
   //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
   
-
   previousNtpMillis = millis();
 }
 
 void loop() 
-{
-  
+{ 
   if (loopCounter++ % 10000 == 0)   // Make decisions to send data every 10000 th round and toggle Led to signal that App is running
   {
     volatile uint32_t currentMillis = millis();
@@ -649,40 +570,29 @@ void loop()
             timeNtpUpdateCounter++;   
         }  
     }
-    else
+    else            // it was not NTP Update, proceed with send to analog table or On/Off-table
     {
-      dateTimeUTCNow = sysTime.getTime();
+      dateTimeUTCNow = sysTime.getTime();     
+      // Get offset in minutes between UTC and local time with consideration of DST
+      time_helpers.update(dateTimeUTCNow);
+      int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+      DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
+      // In the last 15 sec of each day we set a pulse to Off-State when we had On-State before
+      bool isLast15SecondsOfDay = (localTime.hour() == 23 && localTime.minute() == 59 &&  localTime.second() > 45) ? true : false;
+      //bool isLast15SecondsOfDay = (localTime.second() > 45) ? true : false;
 
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       
-      /*
-      if (onOffDataContainer.One_hasToBeBeSent())
-      {
-        OnOffSampleValueSet onOffSampleValueSet = onOffDataContainer.GetOnOffValueSet();
-        char * tabName = onOffSampleValueSet.OnOffSampleValues[0].tableName;
-        volatile int dummy467  = 1;
-      }
-      */
-
-      volatile bool One_has_TBS = onOffDataContainer.One_hasToBeBeSent();
-
-      if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent())
-      {
-         
-         // Create timezone offset to UTC value to be stored in each table row (local time and offset to UTC)
-        int timeZoneOffsetUTC = actualTimeIsDST ? TIMEZONE + DSTOFFSET : TIMEZONE;
-         
-         // Buffer to hold sampletime
-         char sampleTime[25] {0};
-
-        // Buffer to hold display message
-        char strData[100];
-
-        // Buffer to hold returned Etag
-        char EtagBuffer[50] {0};
+      // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
+      if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent() || isLast15SecondsOfDay)
+      {    
+        //Create some buffer
+        char sampleTime[25] {0};    // Buffer to hold sampletime        
+        char strData[100];          // Buffer to hold display message  
+        char EtagBuffer[50] {0};    // Buffer to hold returned Etag
 
         // Create az_span to hold partitionkey
         char partKeySpan[25] {0};
@@ -694,8 +604,7 @@ void loop()
         size_t rowKeyLength = 0;
         az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
 
-
-        if (dataContainer.hasToBeSent())       // send analog values
+        if (dataContainer.hasToBeSent())       // have to send analog values ?
         {
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
@@ -707,7 +616,23 @@ void loop()
           if (augmentTableNameWithYear)
           {
             augmentedAnalogTableName += (dateTimeUTCNow.year());     
-          }
+          }            
+              // Create table if table doesn't exist
+              if (localTime.year() != dataContainer.Year)
+              {
+                 az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
+                 
+                 if ((theResult == AZ_HTTP_STATUS_CODE_CONFLICT) || (theResult == AZ_HTTP_STATUS_CODE_CREATED))
+                 {
+                    dataContainer.Set_Year(localTime.year());                   
+                 }
+                 else
+                 {
+                    // Reset board if not successful
+                    NVIC_SystemReset();     // Makes Code 64
+                 }
+              }
+
 
           // Create an Array of, here, 5 Properties
           // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
@@ -740,41 +665,34 @@ void loop()
           // Keep track of tries to insert
           insertCounterAnalogTable++;
 
-          
           // Store Entity to Azure Cloud   
           az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
         }
-        else                  // send On/Off values
+        else     // Task to was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
         {
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
-
-         
+        
           for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables
           {
             if (onOffValueSet.OnOffSampleValues[i].hasToBeSent)
             {
               onOffDataContainer.Reset_hasToBeSent(i);     
               EntityProperty OnOffPropertiesArray[5];
-              TimeSpan  onTime =  OnOffTablesParamsArray[0].OnTimeDay;
+              TimeSpan  onTime =  onOffValueSet.OnOffSampleValues[i].OnTimeDay;
+                           
               char OnTimeDay[15] = {0};
               sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
               createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
 
-              
-
-              // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+              // Tablenames come from the onOffValueSet, here usually the tablename is augmented with the actual year
               String augmentedOnOffTableName = onOffValueSet.OnOffSampleValues[i].tableName;
               if (augmentTableNameWithYear)
               {
                 augmentedOnOffTableName += (dateTimeUTCNow.year());     
               }
-              DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
 
-              volatile uint16_t localYear = localTime.year();
-              volatile uint16_t structYear =  onOffValueSet.OnOffSampleValues[i].Year;
-              
               // Create table if table doesn't exist
-              if ((int)localTime.year() != onOffValueSet.OnOffSampleValues[i].Year)
+              if (localTime.year() != onOffValueSet.OnOffSampleValues[i].Year)
               {
                  az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str());
                  
@@ -788,14 +706,14 @@ void loop()
                  }
               }
        
-              TimeSpan TimeFromLast = dateTimeUTCNow.operator-(OnOffTablesParamsArray[i].LastSendTime);
+              TimeSpan TimeFromLast = onOffValueSet.OnOffSampleValues[i].TimeFromLast;
               char timefromLast[15] = {0};
               sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
            
-              OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
+              //OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
               size_t onOffPropertyCount = 5;
-              OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", onOffValueSet.OnOffSampleValues[i].inverter ? (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "Off" : "On"), (char *)"Edm.String");
-              OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", onOffValueSet.OnOffSampleValues[i].inverter ? (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "Off" : "On"), (char *)"Edm.String");
+              OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", onOffValueSet.OnOffSampleValues[i].outInverter ? (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "Off" : "On"), (char *)"Edm.String");
+              OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", onOffValueSet.OnOffSampleValues[i].outInverter ? (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "Off" : "On"), (char *)"Edm.String");
               OnOffPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"OnTimeDay", (char *) OnTimeDay, (char *)"Edm.String");
               OnOffPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
               OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) timefromLast, (char *)"Edm.String");
@@ -811,40 +729,47 @@ void loop()
               // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
               OnOffTableEntity onOffTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  OnOffPropertiesArray, onOffPropertyCount);
           
-              OnOffTablesParamsArray[0].insertCounter++;
+              onOffValueSet.OnOffSampleValues[i].insertCounter++;
+              //OnOffTablesParamsArray[i].insertCounter++;
 
               // Store Entity to Azure Cloud   
               az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
               break; // Send only one in each round of loop 
             }
-               
+            else
+            {
+              if (isLast15SecondsOfDay && !onOffValueSet.OnOffSampleValues[i].dayIsLocked)
+              {
+
+                if (onOffValueSet.OnOffSampleValues[i].actState == true)              
+                {               
+                   onOffDataContainer.Set_ResetToOnIsNeededFlag(i, true);                 
+                   onOffDataContainer.SetNewOnOffValue(i, onOffValueSet.OnOffSampleValues[i].inputInverter ? true : false, dateTimeUTCNow, timeZoneOffsetUTC);
+                   delay(1000);   // because we don't want to send twice in the same second 
+                  break;
+                }
+                else
+                {              
+                  if (onOffValueSet.OnOffSampleValues[i].resetToOnIsNeeded)
+                  {                  
+                    onOffDataContainer.Set_DayIsLockedFlag(i, true);
+                    onOffDataContainer.Set_ResetToOnIsNeededFlag(i, false);
+                    onOffDataContainer.SetNewOnOffValue(i, onOffValueSet.OnOffSampleValues[i].inputInverter ? false : true, dateTimeUTCNow, timeZoneOffsetUTC);
+                    break;
+                  }                 
+                }              
+              }
+            }              
           }
         } 
+      }    
     }
-
-
-    
-    
-    /*
-    while (dateTimeUtcNewSeconds != dateTimeUTCNow.secondstime())
-    {
-      dateTimeUTCNow = actualizeSysTimeFromNtpIfNeeded();
-      dateTimeUtcNewSeconds = dateTimeUTCNow.secondstime();
-    }
-    */
-
-    //systimeNtpDelta = dateTimeUTCOldSeconds - dateTimeUTCNow.secondstime(); 
   }
-  }
-  
-  
-
   loopCounter++;
 }
 
 unsigned long getNTPtime() 
 {
- 
     // module returns a unsigned long time valus as secs since Jan 1, 1970 
     // unix time or 0 if a problem encounted
     //only send data when connected
@@ -1088,7 +1013,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   
   #if TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
-    //wifi_client.setHandshakeTimeout(3);
+    
   #else
     static WiFiClient wifi_client;
   #endif
@@ -1096,7 +1021,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
 
   #if TRANSPORT_PROTOCOL == 1
-    wifi_client.setCACert(baltimore_root_ca);
+    wifi_client.setCACert(myX509Certificate);
     //wifi_client.setCACert(baltimore_corrupt_root_ca);
   #endif
 
@@ -1105,8 +1030,8 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
 /*
 #if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(baltimore_root_ca);
-  if (insertCounterAnalog == 2)
+  wifi_client.setCACert(myX509Certificate);
+  if (insertCounterAnalogTable == 2)
   {
     wifi_client.setCACert(baltimore_corrupt_root_ca);
   }
@@ -1205,7 +1130,7 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
 #endif
 
 #if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(baltimore_root_ca);
+  wifi_client.setCACert(myX509Certificate);
   //wifi_client.setCACert(baltimore_corrupt_root_ca);
 #endif
 

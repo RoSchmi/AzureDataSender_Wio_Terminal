@@ -9,8 +9,7 @@
 typedef struct
 {
     float  Value = 999.9;
-    DateTime LastSendTime;
-    int Year = 1900;
+    DateTime LastSendTime;  
 }
 SampleValue; 
     
@@ -37,6 +36,14 @@ public:
     void setLowerLimit(float pLowerLimit);
     void setUpperLimit(float pUpperLimit);
     void setMagigNumberInvalid(float pMagicNumberInvalid);
+    /**
+    * @brief Sets the Year (of the last upload)
+    *
+    * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+    * @param[in] year The year 
+    * 
+    */  
+    void Set_Year(uint16_t year);
 
     bool _isFirstTransmission = true;
 
@@ -47,6 +54,7 @@ public:
     float MagicNumberInvalid = 999.9;
 
     bool _hasToBeSent = false;
+    uint16_t Year = 1900;
 
     DateTime _lastSentTime;
     SampleValue SampleValues[PROPERTY_COUNT];

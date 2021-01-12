@@ -43,6 +43,10 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
     }   
 }
 
+void DataContainerWio::Set_Year(uint16_t year)
+{
+    Year = year;
+}
 void DataContainerWio::setUpperLimit(float pUpperLimit)
 {
     UpperLimit = pUpperLimit;

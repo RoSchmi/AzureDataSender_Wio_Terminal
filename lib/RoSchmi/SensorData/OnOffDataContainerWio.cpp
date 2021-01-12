@@ -31,16 +31,50 @@ const char * tableName_2, const char * tableName_3, const char * tableName_4)
 // is set to the value which actstate was before
 // LastSwitchTime is set to the value passed in parameter time
 // The hasToBeSent flag is set
-void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTime time)
+// If we have a new day (local time), a new OnTimeDay is calculated
+// If we have a new day the 'dayIsLocked' flag is cleared 
+void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTime time, int offsetUtcMinutes)
 {
-     if (state != onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState)
-     {        
+    // change incoming state if inputInverter is active
+    bool _state = onOffSampleValueSet.OnOffSampleValues[sensorIndex].inputInverter ? !state : state;
+    DateTime _localTime = time.operator+(TimeSpan(offsetUtcMinutes * 60));
+    DateTime _localTimeOfLastSwitch = onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime.operator+(TimeSpan(offsetUtcMinutes * 60));
+    TimeSpan _timeFromLast = time.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime);
+    
+    // only do anything if state has changed
+    if (_state != onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState)
+    {  
+        // if the day (local time) has changed we calculate a new OnTimeDay value
+        if (_localTimeOfLastSwitch.day() != _localTime.day())
+        {
+            // if we switch from true (on) to off (false) we calculate new OnTimeDay
+            if (onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState == true)
+            {
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = time.operator-(DateTime(time.year(), time.month(), time.day(), 0, 0, 0));
+            }
+            else
+            {
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = TimeSpan(0);
+            }
+            onOffSampleValueSet.OnOffSampleValues[sensorIndex].dayIsLocked = false;
+            onOffSampleValueSet.OnOffSampleValues[sensorIndex].resetToOnIsNeeded = false;
+        }
+        else    // not a new day
+        {
+            if (onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState == true)
+            {
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = 
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay.operator+(time.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime));
+            }          
+        }
+        
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].lastState = 
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState;               
-        onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState = state;
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState = _state;
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].TimeFromLast = _timeFromLast.days() < 100 ? _timeFromLast : TimeSpan(0);
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime = time;
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = true;
-     }
+    }
 }
 
 
@@ -54,6 +88,11 @@ void OnOffDataContainerWio::PresetOnOffState(int sensorIndex, bool state, bool l
     }
 }
 
+bool OnOffDataContainerWio::ReadOnOffState(int sensorIndex)
+{
+    return onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState;
+}
+
 OnOffSampleValueSet OnOffDataContainerWio::GetOnOffValueSet()
 {
     return onOffSampleValueSet;
@@ -64,9 +103,24 @@ void OnOffDataContainerWio::Reset_hasToBeSent(int sensorIndex)
     onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = false;  
 }
 
-void OnOffDataContainerWio::Set_Inverter(int sensorIndex, bool invertState)
+void OnOffDataContainerWio::Set_OutInverter(int sensorIndex, bool invertState)
 {
-    onOffSampleValueSet.OnOffSampleValues[sensorIndex].inverter = invertState;  
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].outInverter = invertState;  
+}
+
+void OnOffDataContainerWio::Set_InputInverter(int sensorIndex, bool invertState)
+{
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].inputInverter = invertState;
+}
+
+void OnOffDataContainerWio::Set_DayIsLockedFlag(int sensorIndex, bool isLockedState)
+{
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].dayIsLocked = isLockedState;
+}
+
+void OnOffDataContainerWio::Set_ResetToOnIsNeededFlag(int sensorIndex, bool state)
+{
+    onOffSampleValueSet.OnOffSampleValues[sensorIndex].resetToOnIsNeeded = state;
 }
 
 void OnOffDataContainerWio::Set_Year(int sensorIndex, int year)

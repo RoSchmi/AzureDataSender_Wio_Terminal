@@ -8,19 +8,24 @@
 
 typedef struct
 {
-    bool inverter = false;
+    bool inputInverter = false;
+    bool outInverter = false;
     bool actState = false; 
     bool lastState = true;
-    bool  hasToBeSent = false;
-    DateTime LastSwitchTime;
+    bool hasToBeSent = false;
+    bool dayIsLocked = false;
+    bool resetToOnIsNeeded = false;
+    DateTime LastSwitchTime = DateTime();
+    TimeSpan OnTimeDay = TimeSpan(0);
+    TimeSpan TimeFromLast = TimeSpan(0);
     char tableName[50];
+    uint32_t insertCounter = 0;
     uint16_t Year = 1900;
 }
 OnOffSampleValue; 
     
 typedef struct
-{  
-    //DateTime LastSendTime;
+{    
     OnOffSampleValue OnOffSampleValues[PROPERTY_COUNT];
 }
 OnOffSampleValueSet;
@@ -44,7 +49,7 @@ public:
  * @param[in] time Sets the 'LastSwitchTime'-variable of the selected OnOff-Sensor representation.
  *              If time = nullptr or time is not passed, 'LastSwitchTime' is not changed
  */
-    void SetNewOnOffValue(int sensorIndex, bool state, DateTime time);
+    void SetNewOnOffValue(int sensorIndex, bool state, DateTime time, int offsetUtcMinutes);
 
 /**
  * @brief Sets State and LastState without affecting 'hasToBeSent"-State.
@@ -59,6 +64,13 @@ public:
     void PresetOnOffState(int sensorIndex, bool state, bool lastState, DateTime time = nullptr);
 
 /**
+ * @brief Reads the On/Off-State.
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ */   
+    bool ReadOnOffState(int sensorIndex);
+
+/**
  * @brief Resets the 'hasToBeSent"-flag of the selected sensor representation.
  *
  * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
@@ -69,9 +81,40 @@ public:
  * @brief Sets a flag which indicates whether the state has to be inverted for use.
  *
  * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] invertState True = shall be inverted, False = shall not be inverted
  * 
  */  
-    void Set_Inverter(int sensorIndex, bool invertState);
+    void Set_OutInverter(int sensorIndex, bool invertState);
+
+/**
+ * @brief Sets a flag which indicates whether the input state is inverted.
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] invertState Indicates whether the input state is inverted
+ * 
+ */  
+    void Set_InputInverter(int sensorIndex, bool invertState);
+    
+/**
+ * @brief Sets a flag which indicates whether the dayIsLocked state is set.
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] isLockedState Indicates whether the dayIsLocked state is set
+ * 
+ */  
+
+    void Set_DayIsLockedFlag(int sensorIndex, bool isLockedState);
+
+/**
+ * @brief Sets a flag which indicates whether the state has to be reset to on (end of day spike).
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] state Indicates whether the resetToOnIsNeeded shall be set
+ * 
+ */ 
+
+    void Set_ResetToOnIsNeededFlag(int sensorIndex, bool state);
+
 
 /**
  * @brief Sets the Year (of the last upload)
