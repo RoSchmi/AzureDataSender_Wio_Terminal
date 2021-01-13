@@ -730,7 +730,7 @@ void loop()
               OnOffTableEntity onOffTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  OnOffPropertiesArray, onOffPropertyCount);
           
               onOffValueSet.OnOffSampleValues[i].insertCounter++;
-              //OnOffTablesParamsArray[i].insertCounter++;
+              
 
               // Store Entity to Azure Cloud   
               az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
@@ -1027,8 +1027,8 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
   
 
-
 /*
+// For tests: Try second upload with corrupted certificate to provoke failure
 #if TRANSPORT_PROTOCOL == 1
   wifi_client.setCACert(myX509Certificate);
   if (insertCounterAnalogTable == 2)
@@ -1056,7 +1056,6 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
   // RoSchmi for tests: to simulate failed upload
   // statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
-
 
   lastResetCause = 0;
 
@@ -1093,6 +1092,13 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through SystemReset
 
         #if TRANSPORT_PROTOCOL == 1
+
+          //pinMode(RTL8720D_CHIP_PU, OUTPUT); 
+          //digitalWrite(RTL8720D_CHIP_PU, LOW); 
+          //delay(500); 
+          //digitalWrite(RTL8720D_CHIP_PU, HIGH);  
+          //delay(500);
+
           NVIC_SystemReset();     // Makes Code 64
         #endif
         #if TRANSPORT_PROTOCOL == 0     // for http requests reboot after the second, not the first, failed request

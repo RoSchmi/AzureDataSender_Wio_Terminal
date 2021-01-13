@@ -22,7 +22,7 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 5.0              // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 0.2              // Sendinterval in minutes                                       
                                                 // is limited to be not below 1 second
 // Names for Tables in Azure Account, please obey rules for Azure Tablenames (e.g. no underscore allowed)
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
