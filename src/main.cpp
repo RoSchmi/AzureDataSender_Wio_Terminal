@@ -12,6 +12,25 @@
   //https://myaccount.blob.core.windows.net/mycontainer/myblob
   //https://docs.microsoft.com/de-de/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata
 
+// Memory usage
+// 20000000 	First 64 K Ram Block
+// 2000FFFF
+// 20010000	  Second 64 K Ram Block
+// 2001FFFF
+// 20020000	  Third 64 K Ram Block
+// 2002FFFF
+
+// Heap goes upwards from about 2000A4A0
+// Stack goes downwards from 2000FFFF
+
+// The following memory areas are extraordinarily used as buffers
+// 20029000	300 Bytes PROPERTIES_BUFFER_MEMORY_ADDR
+// 20029200          900 Bytes Request Buffer
+// 2002A000	2000 Bytes RESPONSE_BUFFER_MEMORY_ADDR
+// 2002FFFF           Ende des Ram
+
+
+
 
 #include <Arduino.h>
 #include <config.h>
@@ -117,6 +136,9 @@ uint32_t loopCounter = 0;
 unsigned int insertCounterAnalogTable = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
+
+uint32_t referenceHeapAddr = 0;
+uint32_t lostLeakageBytes = 0;
 
 volatile uint32_t previousNtpMillis = 0;
 volatile uint32_t previousSensorReadMillis = 0;
@@ -226,6 +248,44 @@ void myCrashHandler(SAMCrashReport &report)
   int dummy56738 = 1;
 
 };
+
+extern "C" {
+  void * _sbrk(int incr);
+
+  extern unsigned int __bss_end__; // end of bss section
+
+  
+  
+}
+// Return free memory between end of heap (or end bss) and whatever is current
+int freeMemory() {
+  int free_memory, heap_end = (int)_sbrk(0);
+  char exhibitBuf[15] {0};
+  sprintf(exhibitBuf, "Begin of heap: %10X", free_memory);
+  Serial.println(exhibitBuf);
+
+
+//https://forum.arduino.cc/index.php?topic=674975.0
+// minimal size of stack
+
+//UBaseType_t  HighWatermark = uxTaskGetStackHighWaterMark( NULL);
+//sprintf(exhibitBuf, "Watermark: %10X", (int)&HighWatermark);
+//Serial.println(exhibitBuf);
+
+  UBaseType_t freeHeap = xPortGetFreeHeapSize(); 
+  sprintf(exhibitBuf, "Free Heap: %10X", (int)freeHeap);
+  Serial.println(exhibitBuf); 
+
+  //UBaseType_t minFreeHeap = xPortGetMinimumEverFreeHeapSize();
+  //sprintf(exhibitBuf, "Min Free Heap: %10X", (int)minFreeHeap);
+  //Serial.println(exhibitBuf);
+
+
+  sprintf(exhibitBuf, "Stack: %10X", (int)&__bss_end__);
+  Serial.println(exhibitBuf);
+
+  return (int)&free_memory - (heap_end ? heap_end : (int)&__bss_end__);
+}
 
 void setup() 
 { 
@@ -474,6 +534,74 @@ if (!WiFi.enableSTA(true))
   // and to 
   uint32_t * ptr_one;
   uint32_t * last_ptr_one;
+  
+  char * ptrChar;
+  
+  bool firstLoop = true;
+  //while (true)
+  //{
+     // Clear screen
+    current_text_line = 0;
+    tft.fillScreen(TFT_WHITE);
+    
+    /*
+    volatile int theFreeMem = freeMemory();
+    Serial.print("Free Memory before: ");
+    Serial.println(theFreeMem);
+    sprintf(buf, "Before: %10X", theFreeMem);
+    lcd_log_line(buf);
+    */
+
+   //Yes it is fine to use pvPortMalloc() and vPortFree() in the application.
+   //https://www.freertos.org/FreeRTOS_Support_Forum_Archive/November_2013/freertos_Direct_using_pvPortMalloc_and_vPortFree_032bc6bfj.html
+ 
+
+   //char stringToFind[20];  //[20] = "RolSchmi\0";
+   ptr_one = (uint32_t *)pvPortMalloc(1);
+
+   ptrChar = (char *)pvPortMalloc(20);
+  //vPortFree(ptr_one);
+
+  char theStr[] = "RoSchmi\0";
+
+  strcpy(ptrChar, theStr);
+
+  //*ptrChar = 'A';
+
+
+   //ptr_one = (uint32_t *)malloc(100);
+
+   
+
+   if (firstLoop)
+  {
+    firstLoop = false;
+    referenceHeapAddr = (uint32_t)ptr_one;
+  }
+
+  lostLeakageBytes =  (uint32_t)ptr_one - referenceHeapAddr;
+   
+   sprintf(buf, "Allocated at: %10X", (unsigned int)ptr_one);
+   lcd_log_line(buf);
+   Serial.println(buf);
+   sprintf(buf, " Lost %i",  lostLeakageBytes);
+   lcd_log_line(buf);
+   Serial.println(buf);
+   /*
+  theFreeMem = freeMemory();
+  Serial.print("Free Memory after: ");
+  Serial.println(theFreeMem);
+  Serial.println("");
+  sprintf(buf, "After: %10X", (unsigned int)theFreeMem);
+  lcd_log_line(buf);
+  */
+
+  volatile int dummy5851 = 1;
+  delay(1000);
+
+  
+
+
     
   /*
    for (volatile int i = 0; 1 < 100000; i++)
@@ -662,8 +790,28 @@ void loop()
           sprintf(strData, "   Trying to insert %u", insertCounterAnalogTable);   
           lcd_log_line(strData);
     
-          // Keep track of tries to insert
+          // Keep track of tries to insert and check for memory leak
           insertCounterAnalogTable++;
+
+          uint32_t * ptr_one = (uint32_t *)pvPortMalloc(100);
+          vPortFree(ptr_one);
+
+          if (insertCounterAnalogTable == 1)
+          {          
+            referenceHeapAddr = (uint32_t)ptr_one;
+          }
+          lostLeakageBytes =  (uint32_t)ptr_one - referenceHeapAddr;
+          char buf[30] {0};
+          sprintf(buf, "Allocating at: %10X", (unsigned int)ptr_one);
+          lcd_log_line(buf);
+          Serial.println(buf);
+          sprintf(buf, " Lost %i",  lostLeakageBytes);
+          lcd_log_line(buf);
+          Serial.println(buf);
+          uint32_t freeHeap = xPortGetFreeHeapSize(); 
+          sprintf(buf, "Free Heap: %10X", (int)freeHeap);
+          Serial.println(buf); 
+
 
           // Store Entity to Azure Cloud   
           az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
@@ -767,6 +915,9 @@ void loop()
   }
   loopCounter++;
 }
+
+
+
 
 unsigned long getNTPtime() 
 {
