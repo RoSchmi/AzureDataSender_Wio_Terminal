@@ -557,10 +557,10 @@ if (!WiFi.enableSTA(true))
  
 
    //char stringToFind[20];  //[20] = "RolSchmi\0";
-   ptr_one = (uint32_t *)pvPortMalloc(1);
+   ptr_one = (uint32_t *)malloc(1);
 
-   ptrChar = (char *)pvPortMalloc(20);
-  //vPortFree(ptr_one);
+   ptrChar = (char *)malloc(20);
+  // free(ptr_one);
 
   char theStr[] = "RoSchmi\0";
 
@@ -793,8 +793,11 @@ void loop()
           // Keep track of tries to insert and check for memory leak
           insertCounterAnalogTable++;
 
-          uint32_t * ptr_one = (uint32_t *)pvPortMalloc(100);
-          vPortFree(ptr_one);
+          //uint32_t * ptr_one = (uint32_t *)pvPortMalloc(100);
+          //vPortFree(ptr_one);
+
+          uint32_t * ptr_one = (uint32_t *)malloc(100);
+          free(ptr_one);
 
           if (insertCounterAnalogTable == 1)
           {          
@@ -808,9 +811,7 @@ void loop()
           sprintf(buf, " Lost %i",  lostLeakageBytes);
           lcd_log_line(buf);
           Serial.println(buf);
-          uint32_t freeHeap = xPortGetFreeHeapSize(); 
-          sprintf(buf, "Free Heap: %10X", (int)freeHeap);
-          Serial.println(buf); 
+          
 
 
           // Store Entity to Azure Cloud   
