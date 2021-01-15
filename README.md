@@ -10,9 +10,10 @@ https://azuretabstorclient.wordpress.com/
 https://azureiotcharts.home.blog/
 
 Before you start, install the latest firmware (actually v2.1.1) for the Wio Terminal WiFi module.
+https://wiki.seeedstudio.com/Wio-Terminal-Network-Overview/
 https://wiki.seeedstudio.com/Wio-Terminal-Wi-Fi/
 
-When you have cloned this repository in your working directory proceed as follows: 
+When you have cloned the repository AzureDataSender_Wio_Terminal in your working directory proceed as follows: 
 
 Copy the file 
 #### include/config_secret_template.h 
