@@ -23,13 +23,11 @@
 // Heap goes upwards from about 2000A4A0
 // Stack goes downwards from 2000FFFF
 
-// The following memory areas are extraordinarily used as buffers
+// The following memory areas are extraordinarily used as buffers from this program
 // 20029000	300 Bytes PROPERTIES_BUFFER_MEMORY_ADDR
 // 20029200          900 Bytes Request Buffer
 // 2002A000	2000 Bytes RESPONSE_BUFFER_MEMORY_ADDR
 // 2002FFFF           Ende des Ram
-
-
 
 
 #include <Arduino.h>
@@ -53,6 +51,7 @@
 
 #include <SensorData/DataContainerWio.h>
 #include "SensorData/OnOffDataContainerWio.h"
+#include <SensorData/OnOffSwitcherWio.h>
 
 #include <azure/core/az_platform.h>
 //#include <platform.h>
@@ -124,6 +123,8 @@ DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INV
 
 OnOffDataContainerWio onOffDataContainer;
 
+OnOffSwitcherWio onOffSwitcherWio;
+
 TFT_eSPI tft;
 int current_text_line = 0;
 
@@ -136,9 +137,6 @@ uint32_t loopCounter = 0;
 unsigned int insertCounterAnalogTable = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
-
-uint32_t referenceHeapAddr = 0;
-uint32_t lostLeakageBytes = 0;
 
 volatile uint32_t previousNtpMillis = 0;
 volatile uint32_t previousSensorReadMillis = 0;
@@ -249,43 +247,7 @@ void myCrashHandler(SAMCrashReport &report)
 
 };
 
-extern "C" {
-  void * _sbrk(int incr);
 
-  extern unsigned int __bss_end__; // end of bss section
-
-  
-  
-}
-// Return free memory between end of heap (or end bss) and whatever is current
-int freeMemory() {
-  int free_memory, heap_end = (int)_sbrk(0);
-  char exhibitBuf[15] {0};
-  sprintf(exhibitBuf, "Begin of heap: %10X", free_memory);
-  Serial.println(exhibitBuf);
-
-
-//https://forum.arduino.cc/index.php?topic=674975.0
-// minimal size of stack
-
-//UBaseType_t  HighWatermark = uxTaskGetStackHighWaterMark( NULL);
-//sprintf(exhibitBuf, "Watermark: %10X", (int)&HighWatermark);
-//Serial.println(exhibitBuf);
-
-  UBaseType_t freeHeap = xPortGetFreeHeapSize(); 
-  sprintf(exhibitBuf, "Free Heap: %10X", (int)freeHeap);
-  Serial.println(exhibitBuf); 
-
-  //UBaseType_t minFreeHeap = xPortGetMinimumEverFreeHeapSize();
-  //sprintf(exhibitBuf, "Min Free Heap: %10X", (int)minFreeHeap);
-  //Serial.println(exhibitBuf);
-
-
-  sprintf(exhibitBuf, "Stack: %10X", (int)&__bss_end__);
-  Serial.println(exhibitBuf);
-
-  return (int)&free_memory - (heap_end ? heap_end : (int)&__bss_end__);
-}
 
 void setup() 
 { 
@@ -315,6 +277,10 @@ void setup()
     onOffDataContainer.Set_OutInverter(i, true);
     onOffDataContainer.Set_InputInverter(i, false);
   }
+  
+  //Initialize OnOffSwitcher
+  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 30 sec
+  onOffSwitcherWio.SetActive();
   
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
@@ -530,114 +496,6 @@ if (!WiFi.enableSTA(true))
   current_text_line = 0;
   tft.fillScreen(TFT_WHITE);
   
-  // This code snippet can be used to get the addresses of the heap
-  // and to 
-  uint32_t * ptr_one;
-  uint32_t * last_ptr_one;
-  
-  char * ptrChar;
-  
-  bool firstLoop = true;
-  //while (true)
-  //{
-     // Clear screen
-    current_text_line = 0;
-    tft.fillScreen(TFT_WHITE);
-    
-    /*
-    volatile int theFreeMem = freeMemory();
-    Serial.print("Free Memory before: ");
-    Serial.println(theFreeMem);
-    sprintf(buf, "Before: %10X", theFreeMem);
-    lcd_log_line(buf);
-    */
-
-   //Yes it is fine to use pvPortMalloc() and vPortFree() in the application.
-   //https://www.freertos.org/FreeRTOS_Support_Forum_Archive/November_2013/freertos_Direct_using_pvPortMalloc_and_vPortFree_032bc6bfj.html
- 
-
-   //char stringToFind[20];  //[20] = "RolSchmi\0";
-   ptr_one = (uint32_t *)malloc(1);
-
-   ptrChar = (char *)malloc(20);
-  // free(ptr_one);
-
-  char theStr[] = "RoSchmi\0";
-
-  strcpy(ptrChar, theStr);
-
-  //*ptrChar = 'A';
-
-
-   //ptr_one = (uint32_t *)malloc(100);
-
-   
-
-   if (firstLoop)
-  {
-    firstLoop = false;
-    referenceHeapAddr = (uint32_t)ptr_one;
-  }
-
-  lostLeakageBytes =  (uint32_t)ptr_one - referenceHeapAddr;
-   
-   sprintf(buf, "Allocated at: %10X", (unsigned int)ptr_one);
-   lcd_log_line(buf);
-   Serial.println(buf);
-   sprintf(buf, " Lost %i",  lostLeakageBytes);
-   lcd_log_line(buf);
-   Serial.println(buf);
-   /*
-  theFreeMem = freeMemory();
-  Serial.print("Free Memory after: ");
-  Serial.println(theFreeMem);
-  Serial.println("");
-  sprintf(buf, "After: %10X", (unsigned int)theFreeMem);
-  lcd_log_line(buf);
-  */
-
-  volatile int dummy5851 = 1;
-  delay(1000);
-
-  
-
-
-    
-  /*
-   for (volatile int i = 0; 1 < 100000; i++)
-   {
-     last_ptr_one = ptr_one;
-     ptr_one = 0;
-     ptr_one = (uint32_t *)malloc(1);
-     if (ptr_one == 0)
-     {
-       ptr_one = last_ptr_one;
-       volatile int dummy68424 = 1;
-     }
-     else
-     {
-       *ptr_one = (uint32_t)0xAA55AA55;
-       char printBuf[25];
-       
-       if (((uint32_t)ptr_one % 256)== 0)
-       {
-         sprintf(printBuf, "%09x", (uint32_t)ptr_one);
-          lcd_log_line((char*)printBuf);
-       }
-     } 
-   }
-   */
-   
-  // Fills memory from 0x20028F80 - 0x2002FE00 with pattern AA55
-  // So you can see at breakpoints how much of heap was used
-  /*
-  ptr_one = (uint32_t *)0x20028F80;
-  while (ptr_one < (uint32_t *)0x2002fe00)
-  {
-    *ptr_one = (uint32_t)0xAA55AA55;
-     ptr_one++;
-  }
-  */
 
   dateTimeUTCNow = sysTime.getTime();
 
@@ -713,6 +571,15 @@ void loop()
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
+      
+      // Check if automatic OnOfSwitcher has toggled
+      if (onOffSwitcherWio.hasToggled(dateTimeUTCNow))
+          {
+            bool state = onOffSwitcherWio.GetState();
+            time_helpers.update(dateTimeUTCNow);
+            int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+            onOffDataContainer.SetNewOnOffValue(2, state, dateTimeUTCNow, timeZoneOffsetUTC);
+          }
       
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
       if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent() || isLast15SecondsOfDay)
@@ -793,25 +660,7 @@ void loop()
           // Keep track of tries to insert and check for memory leak
           insertCounterAnalogTable++;
 
-          //uint32_t * ptr_one = (uint32_t *)pvPortMalloc(100);
-          //vPortFree(ptr_one);
-
-          uint32_t * ptr_one = (uint32_t *)malloc(100);
-          free(ptr_one);
-
-          if (insertCounterAnalogTable == 1)
-          {          
-            referenceHeapAddr = (uint32_t)ptr_one;
-          }
-          lostLeakageBytes =  (uint32_t)ptr_one - referenceHeapAddr;
-          char buf[30] {0};
-          sprintf(buf, "Allocating at: %10X", (unsigned int)ptr_one);
-          lcd_log_line(buf);
-          Serial.println(buf);
-          sprintf(buf, " Lost %i",  lostLeakageBytes);
-          lcd_log_line(buf);
-          Serial.println(buf);
-          
+          // RoSchmi Todo: event. include code to check for memory leaks here
 
 
           // Store Entity to Azure Cloud   
@@ -819,6 +668,8 @@ void loop()
         }
         else     // Task to was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
         {
+          
+
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
         
           for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables
