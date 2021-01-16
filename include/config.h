@@ -22,7 +22,7 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 10.0              // Sendinterval in minutes                                       
+#define SENDINTERVAL_MINUTES 1.0              // Sendinterval in minutes                                       
                                                 // is limited to be not below 1 second
 // Names for Tables in Azure Account, please obey rules for Azure Tablenames (e.g. no underscore allowed)
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
@@ -36,7 +36,7 @@
 #define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table  max length = 45                  
 
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
-                                        // (trunked to values between 1 - 60)
+                                        // (limited to values between 1 - 60)
                                         // (Sensor readings are considered to be invalid if not successsfully
                                         // read within this timespan)
 
@@ -47,7 +47,7 @@
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
-#define ANALOG_SENSOR_READ_INTERVAL_MILLIS 100   // Analog sensors are read with this interval                                      
+#define ANALOG_SENSOR_READ_INTERVAL_MILLIS 1000   // Analog sensors are read with this interval                                      
 
 #define WORK_WITH_WATCHDOG 0                   // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
@@ -69,8 +69,8 @@
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value
 
 
-#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
-#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
+//#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
+//#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
                                      // if activated we select test values, not sinus curve
 
 

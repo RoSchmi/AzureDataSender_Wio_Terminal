@@ -65,6 +65,7 @@
 #include <stdlib.h>
 
 #include "HTTPClient.h"
+#include "DHT.h"
 
 #include "mbedtls/md.h"
 #include "mbedtls/base64.h"
@@ -124,6 +125,12 @@ DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INV
 OnOffDataContainerWio onOffDataContainer;
 
 OnOffSwitcherWio onOffSwitcherWio;
+
+
+#define DHTPIN 0
+#define DHTTYPE DHT22
+
+DHT dht(DHTPIN, DHTTYPE);
 
 TFT_eSPI tft;
 int current_text_line = 0;
@@ -258,6 +265,7 @@ void setup()
   tft.setTextColor(TFT_BLACK);
 
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(WIO_LIGHT, INPUT );
   
   Serial.begin(9600);
   Serial.println("\r\nStarting");
@@ -482,6 +490,9 @@ if (!WiFi.enableSTA(true))
 
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
+  
+  dht.begin();
+
 
   // Wait for 2000 ms
   for (int i = 0; i < 3; i++)
@@ -881,31 +892,32 @@ float ReadAnalogSensor(int pAin)
             {
                 case 0:
                     {
-                        theRead = 0.10;
-                        //theRead = analog0.ReadRatio();
+                        theRead = dht.readTemperature();                       
                     }
                     break;
 
                 case 1:
                     {
-                        theRead = 180.20;
-                        //theRead = analog1.ReadRatio();
+                        theRead = dht.readHumidity();                       
                     }
                     break;
                 case 2:
                     {
-                        theRead = -0.30;
-                        //theRead = analog2.ReadRatio();
+                        theRead = analogRead(WIO_LIGHT);
+                        theRead = map(theRead, 0, 1023, 0, 100);
+                        theRead = theRead < 0 ? 0 : theRead > 100 ? 100 : theRead;
+
+                        //theRead = insertCounterAnalogTable;
+                        //theRead = theRead / 10;                          
                     }
                     break;
                 case 3:
                     {
-                        theRead = -65.40;
-                        //theRead = analog3.ReadRatio();
+                        theRead = lastResetCause;                        
                     }
                     break;
             }
-
+            theRead = isnan(theRead) ? MAGIC_NUMBER_INVALID : theRead;
             return theRead ;
 #endif
 

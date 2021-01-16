@@ -26,8 +26,13 @@ DataContainerWio::DataContainerWio(TimeSpan pSendInterval, TimeSpan pInvalidateI
 
 void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue)
 {
-    SampleValues[pIndex].Value = pSampleValue;
-    SampleValues[pIndex].LastSendTime = pActDateTime;
+  
+
+    if (pSampleValue > (MagicNumberInvalid + 0.001) || pSampleValue < (MagicNumberInvalid - 0.001))
+    {
+        SampleValues[pIndex].Value = pSampleValue; 
+        SampleValues[pIndex].LastSendTime = pActDateTime;
+    }
 
     if (_isFirstTransmission)
     {       
