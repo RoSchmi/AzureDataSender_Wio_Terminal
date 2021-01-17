@@ -51,7 +51,8 @@
 
 #include <SensorData/DataContainerWio.h>
 #include "SensorData/OnOffDataContainerWio.h"
-#include <SensorData/OnOffSwitcherWio.h>
+#include "SensorData/OnOffSwitcherWio.h"
+#include "SensorData/ImuManagerWio.h"
 
 #include <azure/core/az_platform.h>
 //#include <platform.h>
@@ -66,6 +67,8 @@
 
 #include "HTTPClient.h"
 #include "DHT.h"
+#include"LIS3DHTR.h"
+
 
 #include "mbedtls/md.h"
 #include "mbedtls/base64.h"
@@ -126,6 +129,9 @@ OnOffDataContainerWio onOffDataContainer;
 
 OnOffSwitcherWio onOffSwitcherWio;
 
+ImuManagerWio imuManagerWio;
+
+LIS3DHTR<TwoWire> lis;
 
 #define DHTPIN 0
 #define DHTTYPE DHT22
@@ -492,6 +498,14 @@ if (!WiFi.enableSTA(true))
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
   
   dht.begin();
+
+  lis.begin(Wire1);
+  lis.setOutputDataRate(LIS3DHTR_DATARATE_25HZ); //Data output rate
+  lis.setFullScaleRange(LIS3DHTR_RANGE_2G); //Scale range set to 2g
+  //lis.setFullScaleRange(LIS3DHTR_RANGE_8G); //Scale range set to 2g
+  imuManagerWio.begin();
+  imuManagerWio.SetActive();
+
 
 
   // Wait for 2000 ms
@@ -912,9 +926,24 @@ float ReadAnalogSensor(int pAin)
                     }
                     break;
                 case 3:
+                    /*
+                    // Read the accelerometer
+                    {
+                        ImuSampleValues sampleValues;
+                        sampleValues.X_Read = lis.getAccelerationX();
+                        sampleValues.Y_Read = lis.getAccelerationY();
+                        sampleValues.Z_Read = lis.getAccelerationZ() + 1;
+                        imuManagerWio.SetNewImuReadings(sampleValues);
+                        theRead = imuManagerWio.GetLastImuReadings().Z_Read;
+                        // Serial.println(theRead * 10);
+                        // constrain(x, a, b);                      
+                    }
+                    */
+                    
                     {
                         theRead = lastResetCause;                        
                     }
+                    
                     break;
             }
             theRead = isnan(theRead) ? MAGIC_NUMBER_INVALID : theRead;

@@ -19,7 +19,11 @@ public:
     bool hasToggled(DateTime actUtcTime);
     bool GetState();
 
+private:
+    bool state = false;
+    bool isActive = false;
+
 };
 
 
-#endif  // _ON_OFF_DATACONTAINERWIO_H_
+#endif  // _ON_OFF_SWITCHER_H_
