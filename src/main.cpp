@@ -905,24 +905,47 @@ float ReadAnalogSensor(int pAin)
             switch (pAin)
             {
                 case 0:
-                    {
-                        theRead = dht.readTemperature();                       
+                    {   
+                        // Take theRead == nan or (nearly) exactly 0.0 as invalid
+                        // (if no sensor is connected the function returns 0) 
+                        theRead = dht.readTemperature();
+                        if (isnan(theRead) || (theRead > - 0.00001 && theRead < 0.00001))
+                        {                         
+                          theRead = MAGIC_NUMBER_INVALID;                      
+                        }
+
                     }
                     break;
 
                 case 1:
                     {
-                        theRead = dht.readHumidity();                       
+                        // Take theRead for temperature == nan or (nearly) exactly 0.0 as invalid
+                        // (if no sensor is connected the function returns 0)                        
+                        theRead = dht.readTemperature();         
+                        if (isnan(theRead) || (theRead > - 0.00001 && theRead < 0.00001))
+                        {
+                          volatile int dummy1234 = 1;
+                          theRead = MAGIC_NUMBER_INVALID;
+                          
+                        }
+                        else
+                        {
+                          volatile int dummy2234 = 1;
+                          theRead = dht.readHumidity();
+                         
+                        }
                     }
                     break;
                 case 2:
                     {
+                        /*
                         theRead = analogRead(WIO_LIGHT);
                         theRead = map(theRead, 0, 1023, 0, 100);
                         theRead = theRead < 0 ? 0 : theRead > 100 ? 100 : theRead;
+                        */
 
-                        //theRead = insertCounterAnalogTable;
-                        //theRead = theRead / 10;                          
+                        theRead = insertCounterAnalogTable;
+                        theRead = theRead / 10;                          
                     }
                     break;
                 case 3:
