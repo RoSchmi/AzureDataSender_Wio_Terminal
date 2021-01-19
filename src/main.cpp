@@ -152,6 +152,8 @@ uint32_t screenColor = TFT_BLUE;
 uint32_t backColor = TFT_WHITE;
 uint32_t textColor = TFT_BLACK;
 
+bool showGraphScreen = SHOW_GRAPHIC_SCREEN == 1;
+
 uint32_t loopCounter = 0;
 unsigned int insertCounterAnalogTable = 0;
 uint32_t timeNtpUpdateCounter = 0;
@@ -207,7 +209,7 @@ static void button_handler_right()
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
   int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
-  onOffDataContainer.SetNewOnOffValue(0, state == 0, utcNow, timeZoneOffsetUTC); 
+  onOffDataContainer.SetNewOnOffValue(2, state == 0, utcNow, timeZoneOffsetUTC); 
 }
 
 static void button_handler_mid() 
@@ -225,25 +227,22 @@ static void button_handler_left()
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
   int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
-  onOffDataContainer.SetNewOnOffValue(2, state == 0, utcNow, timeZoneOffsetUTC);
+  onOffDataContainer.SetNewOnOffValue(0, state == 0, utcNow, timeZoneOffsetUTC);
 }
 
 // Routine to send messages to the display
-void lcd_log_line(char* line) {
-    // clear line
-    tft.setTextColor(textColor);
-    tft.setFreeFont(textFont);
-    tft.fillRect(0, current_text_line * LCD_LINE_HEIGHT, 320, LCD_LINE_HEIGHT, backColor);
-    tft.drawString(line, 5, current_text_line * LCD_LINE_HEIGHT);
-    current_text_line %= ((LCD_HEIGHT-20)/LCD_LINE_HEIGHT);
-    //current_text_line %= ((LCD_HEIGHT)/LCD_LINE_HEIGHT);
-    current_text_line++;
-    
-
-
-    if (current_text_line == 0) {
-      tft.fillScreen(screenColor);
-    }
+void lcd_log_line(char* line) 
+{  
+  tft.setTextColor(textColor);
+  tft.setFreeFont(textFont);
+  tft.fillRect(0, current_text_line * LCD_LINE_HEIGHT, 320, LCD_LINE_HEIGHT, backColor);
+  tft.drawString(line, 5, current_text_line * LCD_LINE_HEIGHT);
+  current_text_line++;
+  current_text_line %= ((LCD_HEIGHT-20)/LCD_LINE_HEIGHT);
+  if (current_text_line == 0) 
+  {
+    tft.fillScreen(screenColor);
+  }
 }
 
 // forward declarations
@@ -258,6 +257,7 @@ az_http_status_code CreateTable( const char * tableName, ContType pContentType, 
 az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag);
 void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_span outSpan, size_t *outSpanLength);
 void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
+void showDisplayFrame();
 void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4);
 
 
@@ -289,11 +289,15 @@ void setup()
   Serial.begin(9600);
   Serial.println("\r\nStarting");
 
+  pinMode(WIO_5S_PRESS, INPUT_PULLUP);
+
   pinMode(BUTTON_1, INPUT);
   pinMode(BUTTON_3, INPUT);
   attachInterrupt(digitalPinToInterrupt(BUTTON_1), button_handler_right, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_2), button_handler_mid, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
+
+
   
   onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
   // Initialize State of 4 On/Off-sensor representations 
@@ -552,113 +556,105 @@ if (!WiFi.enableSTA(true))
   // The following line creates a table in the Azure Storage Account defined in config.h
   //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
 
-#if SHOW_GRAPHIC_SCREEN == 1
- tft.fillScreen(TFT_BLUE);
- backColor = TFT_LIGHTGREY;
- textFont = FSSB9;
- textColor = TFT_BLACK;
- current_text_line = 1;
- const char * PROGMEM line_1 = (char *)"  Temperature      Humidity";
- lcd_log_line((char *)line_1);
- //current_text_line = 3;
- //backColor = TFT_BLUE;
- //textFont = FSSBO18;
- //textColor = TFT_ORANGE;
- //lcd_log_line((char *)"   --.-         --.-");
- //backColor = TFT_LIGHTGREY;
- //textFont = FSSB9;
- //textColor = TFT_BLACK;
- current_text_line = 6;
- const char * PROGMEM line_2 = (char *)"        Light            Movement";
- lcd_log_line((char *)line_2);
- //current_text_line = 8;
- //backColor = TFT_BLUE;
- //textFont = FSSBO18;
- //textColor = TFT_ORANGE;
- //lcd_log_line((char *)"   --.-         --.-");
- //backColor = TFT_LIGHTGREY;
- //textFont = FSSB9;
- //textColor = TFT_BLACK;
- current_text_line = 10;
- const char * PROGMEM line_3 = (char *)"      (1)           (2)           (3)           (4)";
- lcd_log_line((char *)line_3);
 
-fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false);
-#endif
+  showDisplayFrame();
+  fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false);
 
 
   delay(50);
   previousNtpMillis = millis();
 }
 
+void showDisplayFrame()
+{
+  if (showGraphScreen)
+  {
+    tft.fillScreen(TFT_BLUE);
+    backColor = TFT_LIGHTGREY;
+    textFont = FSSB9;
+    textColor = TFT_BLACK;
+    current_text_line = 1;
+    const char * PROGMEM line_1 = (char *)"  Temperature      Humidity";
+    lcd_log_line((char *)line_1);
+    current_text_line = 6;
+    const char * PROGMEM line_2 = (char *)"        Light            Movement";
+    lcd_log_line((char *)line_2);
+    current_text_line = 10;
+    const char * PROGMEM line_3 = (char *)"      (1)           (2)           (3)           (4)";
+    lcd_log_line((char *)line_3);
+  }
+}
+
 void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4)
 {
-  an_1 = constrain(an_1, -999.9, 999.9);
-  an_2 = constrain(an_2, -999.9, 999.9);
-  an_3 = constrain(an_3, -999.9, 999.9);
-  an_4 = constrain(an_4, -999.9, 999.9);
-
-  typedef char * postGap[4];
-  postGap postGapArray[4] {(char *)"\0", (char *)" \0", (char *)"  \0", (char *)"   \0"};
-
-  const char* Gap1 = "    ";
-  const char* Gap2 = "    ";
-  char lineBuf[40] {0};
-  
-  char an_left_Str[7] {0};
-  char an_right_Str[7] {0};
-  sprintf(an_left_Str, "%.1f", an_1);
-  sprintf(an_right_Str, "%.1f", an_2);
-  
-  if (an_1 == 999.9)
+  if (showGraphScreen)
   {
-  strcpy(an_left_Str, (char *)"--.-");
-  }
-  if (an_2 == 999.9)
-  {
-  strcpy(an_right_Str, (char *)"--.-");
-  }
+    an_1 = constrain(an_1, -999.9, 999.9);
+    an_2 = constrain(an_2, -999.9, 999.9);
+    an_3 = constrain(an_3, -999.9, 999.9);
+    an_4 = constrain(an_4, -999.9, 999.9);
+
+    typedef char * postGap[4];
+    postGap postGapArray[4] {(char *)"\0", (char *)" \0", (char *)"  \0", (char *)"   \0"};
+
+    const char* Gap1 = "    ";
+    const char* Gap2 = "    ";
+    char lineBuf[40] {0};
   
-  int i_1 = 6 - strlen(an_left_Str);
-  int i_2 = 6 - strlen(an_right_Str);
+    char an_left_Str[7] {0};
+    char an_right_Str[7] {0};
+    sprintf(an_left_Str, "%.1f", an_1);
+    sprintf(an_right_Str, "%.1f", an_2);
+  
+    if (an_1 == 999.9)
+    {
+      strcpy(an_left_Str, (char *)"--.-");
+    }
+    if (an_2 == 999.9)
+    {
+      strcpy(an_right_Str, (char *)"--.-");
+    }
+  
+    int i_1 = 6 - strlen(an_left_Str);
+    int i_2 = 6 - strlen(an_right_Str);
    
-  sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
-  current_text_line = 3;
-  backColor = TFT_BLUE;
-  textFont = FSSBO18;
-  textColor = TFT_ORANGE;
-  lcd_log_line((char *)"");
-  lcd_log_line((char *)"");
-  current_text_line = 3;
-  lcd_log_line(lineBuf);
+    sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
+    current_text_line = 3;
+    backColor = TFT_BLUE;
+    textFont = FSSBO18;
+    textColor = TFT_ORANGE;
+    lcd_log_line((char *)"");
+    lcd_log_line((char *)"");
+    current_text_line = 3;
+    lcd_log_line(lineBuf);
 
-  sprintf(an_left_Str, "%.1f", an_3);
-  sprintf(an_right_Str, "%.1f", an_4);
+    sprintf(an_left_Str, "%.1f", an_3);
+    sprintf(an_right_Str, "%.1f", an_4);
 
-  if (an_3 == 999.9)
-  {
-  strcpy(an_left_Str, (char *)"--.-");
-  }
-  if (an_4 == 999.9)
-  {
-  strcpy(an_right_Str, (char *)"--.-");
-  }
+    if (an_3 == 999.9)
+    {
+      strcpy(an_left_Str, (char *)"--.-");
+    }
+    if (an_4 == 999.9)
+    {
+      strcpy(an_right_Str, (char *)"--.-");
+    }
 
-  i_1 = 6 - strlen(an_left_Str);
-  i_2 = 6 - strlen(an_right_Str);
+    i_1 = 6 - strlen(an_left_Str);
+    i_2 = 6 - strlen(an_right_Str);
    
-  sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
-  current_text_line = 8;
-  lcd_log_line((char *)"");
-  lcd_log_line((char *)"");
-  current_text_line = 8;
-  lcd_log_line(lineBuf);
+    sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
+    current_text_line = 8;
+    lcd_log_line((char *)"");
+    lcd_log_line((char *)"");
+    current_text_line = 8;
+    lcd_log_line(lineBuf);
   
-  tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_GREEN : TFT_DARKGREY);
-  tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_GREEN : TFT_DARKGREY);
-  tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_GREEN : TFT_DARKGREY);
-  tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_GREEN : TFT_DARKGREY);
-
+    tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_GREEN : TFT_DARKGREY);
+    tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_GREEN : TFT_DARKGREY);
+    tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_GREEN : TFT_DARKGREY);
+    tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_GREEN : TFT_DARKGREY);
+  }
 }
 
 
@@ -800,10 +796,12 @@ void loop()
           AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, analogPropertyCount);
      
           // Print message on display
-          #if SHOW_GRAPHIC_SCREEN == 0        
-          sprintf(strData, "   Trying to insert %u", insertCounterAnalogTable);   
-          lcd_log_line(strData);
-          #endif
+          if (!showGraphScreen)
+          {      
+            sprintf(strData, "   Trying to insert %u", insertCounterAnalogTable);   
+            lcd_log_line(strData);
+          }
+          
     
           // Keep track of tries to insert and check for memory leak
           insertCounterAnalogTable++;
@@ -912,12 +910,37 @@ void loop()
         } 
       }    
     }
-    #if SHOW_GRAPHIC_SCREEN == 1
-    fillDisplayFrame(dataContainer.SampleValues[0].Value, dataContainer.SampleValues[1].Value,
-                    dataContainer.SampleValues[2].Value, dataContainer.SampleValues[2].Value,
-                    onOffDataContainer.ReadOnOffState(0), onOffDataContainer.ReadOnOffState(1),
-                    onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3));
-    #endif
+    if (digitalRead(WIO_5S_PRESS) == LOW)
+    {
+      if (showGraphScreen)
+      {
+        textColor = TFT_BLACK;
+        screenColor = TFT_WHITE;
+        backColor = TFT_WHITE;        
+        textFont =  FSSB9;          
+        tft.fillScreen(TFT_WHITE);
+        current_text_line = 0;
+        lcd_log_line((char *)"Log:");
+        showGraphScreen = !showGraphScreen;
+      }
+      else
+      {
+        showGraphScreen = !showGraphScreen;
+        showDisplayFrame();
+      }
+      
+      while(digitalRead(WIO_5S_PRESS) == LOW);   
+    }
+
+
+    if (showGraphScreen)
+    {
+      fillDisplayFrame(dataContainer.SampleValues[0].Value, dataContainer.SampleValues[1].Value,
+                      dataContainer.SampleValues[2].Value, dataContainer.SampleValues[2].Value,
+                      onOffDataContainer.ReadOnOffState(0), onOffDataContainer.ReadOnOffState(1),
+                      onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3));
+    }
+    
   }
   loopCounter++;
 }
@@ -1260,9 +1283,11 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   { 
     sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));
 
-    #if SHOW_GRAPHIC_SCREEN == 0    
-    lcd_log_line((char *)codeString);
-    #endif
+    if (!showGraphScreen)
+    {   
+      lcd_log_line((char *)codeString);
+    }
+    
 
     #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1
     
@@ -1275,10 +1300,10 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     char buffer[] = "AzureUtc: YYYY-MM-DD hh:mm:ss";
     dateTimeUTCNow.toString(buffer);
 
-    #if SHOW_GRAPHIC_SCREEN == 0
+    if (!showGraphScreen)
+    {
     lcd_log_line((char *)buffer);
-    #endif
-
+    }
     #endif   
   }
   else            // request failed
@@ -1287,12 +1312,13 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
     failedUploadCounter++;
     lastResetCause = 100;
-
-    sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));
-
-    #if SHOW_GRAPHIC_SCREEN == 0   
-    lcd_log_line((char *)codeString);
-    #endif
+    
+    if (!showGraphScreen)
+    {
+      sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));
+      lcd_log_line((char *)codeString);
+    }
+    
     
     #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through SystemReset
 
@@ -1361,18 +1387,20 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
     #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
     #endif
-    sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));
 
-    #if SHOW_GRAPHIC_SCREEN == 0   
-    lcd_log_line((char *)codeString);
-    #endif
+    if (!showGraphScreen)
+    {
+      sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));  
+      lcd_log_line((char *)codeString);
+    }
   }
   else
   {
-    sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));
-    #if SHOW_GRAPHIC_SCREEN == 0    
-    lcd_log_line((char *)codeString);
-    #endif
+    if (!showGraphScreen)
+    {
+      sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));   
+      lcd_log_line((char *)codeString);
+    }
     delay(1000);   
   }
 return statusCode;
