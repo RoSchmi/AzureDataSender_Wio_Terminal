@@ -68,6 +68,8 @@
 #define MAX_DATAVALUE 140.0             // Values above are treated as invalid
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value
 
+#define SHOW_GRAPHIC_SCREEN 1           // 1 = A graphic screen with actual values is shown
+                                        // 0 = a log with actions is shown on the screen
 
 //#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
 //#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
