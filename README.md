@@ -3,6 +3,8 @@
 Transfer telemetry sensor data to Azure Storage Tables. App running on the Wio Terminal developed on PlatformIO using Arduino Code, Microsoft Azure C SDK.
 This is still work in progress, creating tables and inserting Entities is already working.
 
+![Gallery](https://github.com/RoSchmi/AzureDataSender_Wio_Terminal/blob/master/pictures/Azure_Datasender_Wio_Terminal.png)
+
 This App uses the Seeed eRPC WiFi library. The App works with http and https requests.
 
 The stored data can be visualized in table form with the App 'AzureTabStorClient' or as line charts with the App 'Charts4Azure'.
