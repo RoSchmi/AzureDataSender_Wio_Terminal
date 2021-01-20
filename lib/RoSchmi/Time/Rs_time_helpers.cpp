@@ -37,10 +37,23 @@ Rs_time_helpers::Rs_time_helpers() {
 Rs_time_helpers::~Rs_time_helpers() {
 
   }
+  
+  void Rs_time_helpers::begin() 
+  {
+    if (dstZone) {
+      timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
+      dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
+      currentTime();
+      beginDST();
+    } 
+  }
+
+
 
   void Rs_time_helpers::update(DateTime utcNow)
   {
       utcTime = utcNow.secondstime() + SECONDS_FROM_1970_TO_2000;
+      lastUpdate = millis();
       //const unsigned long seventyYears = 2208988800UL;
             // subtract seventy years:
       //unsigned long epoch = secsSince1900 - seventyYears;
@@ -49,6 +62,7 @@ Rs_time_helpers::~Rs_time_helpers() {
   void Rs_time_helpers::update(uint32_t utcNowSeconds)
   {
       utcTime = utcNowSeconds + SECONDS_FROM_1970_TO_2000;
+      lastUpdate = millis();
   }
 
 void Rs_time_helpers::ruleDST(const char* tzName, int8_t week, int8_t wday, int8_t month, int8_t hour, int tzOffset) {
@@ -66,9 +80,6 @@ const char* Rs_time_helpers::ruleDST() {
     }
   else return RULE_DST_MESSAGE;
   }
-
-
-
 
 void Rs_time_helpers::ruleSTD(const char* tzName, int8_t week, int8_t wday, int8_t month, int8_t hour, int tzOffset) {
   strcpy(dstEnd.tzName, tzName);
@@ -119,6 +130,25 @@ bool Rs_time_helpers::isDST() {
   memset(timeString, 0, sizeof(timeString));
   strftime(timeString, sizeof(timeString), format, current);
   return timeString;
+  }
+
+  bool Rs_time_helpers::formattedTime(char * outBuffer64Bytes, char *format)
+  {
+    currentTime();
+    memset(timeString, 0, sizeof(timeString));
+    int len = strftime(timeString, sizeof(timeString), format, current);
+    volatile int lenOfBuf = sizeof(outBuffer64Bytes);
+    if (len != 0)
+    {
+      strcpy(outBuffer64Bytes, timeString);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+     
+
   }
 
   void Rs_time_helpers::offset(int16_t days, int8_t hours, int8_t minutes, int8_t seconds) {
@@ -186,7 +216,10 @@ bool Rs_time_helpers::summerTime() {
     }
   }
 
-void dateTimeToStringFormat_01(char * outBuffer50Bytes, DateTime now)
+void Rs_time_helpers::dateTimeToStringFormat_01(char * outBuffer50Bytes, const char *format)
 {
-    
+  currentTime();
+  memset(timeString, 0, sizeof(timeString));
+  strftime(timeString, sizeof(timeString), format, current);
+  strcpy(outBuffer50Bytes, timeString); 
 }

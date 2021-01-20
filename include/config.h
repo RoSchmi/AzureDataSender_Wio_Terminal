@@ -40,10 +40,10 @@
                                         // (Sensor readings are considered to be invalid if not successsfully
                                         // read within this timespan)
 
-#define NTP_UPDATE_INTERVAL_MINUTES 1440   //  With this interval sytem time is updated via NTP
+#define NTP_UPDATE_INTERVAL_MINUTES 5   //  With this interval sytem time is updated via NTP
                                            //  with internet time (is limited to be not below 1 min)
 
-#define UPDATE_TIME_FROM_AZURE_RESPONSE 1  // 1 = yes, 0 = no. SystemTime is updated from the Post response from Azure.
+#define UPDATE_TIME_FROM_AZURE_RESPONSE 0  // 1 = yes, 0 = no. SystemTime is updated from the Post response from Azure.
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
@@ -73,7 +73,13 @@
 
 //#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
 //#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
-                                     // if activated we select test values, not sinus curve
+                                       // if activated we select test values, not sinus curves
+
+#define SENSOR_1_OFFSET    -0.1        // Calibration Offset to sensor No 1
+#define SENSOR_2_OFFSET     0.0        // Calibration Offset to sensor No 2
+#define SENSOR_3_OFFSET     0.0        // Calibration Offset to sensor No 3
+#define SENSOR_4_OFFSET     0.0        // Calibration Offset to sensor No 4
+
 
 
 const char *baltimore_root_ca =

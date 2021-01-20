@@ -49,6 +49,12 @@ class Rs_time_helpers {
      */
     void update(DateTime utcNow);
     void update(uint32_t utcNowSeconds);
+    
+    /**
+     * @brief Has to be called when the rules for DST and STD have been set and UTC is updated.
+     *   
+     */
+    void begin();
 
 /**
      * @brief set the rule for DST (daylight saving time)
@@ -134,6 +140,8 @@ class Rs_time_helpers {
      */
     char* formattedTime(const char *format);
 
+    bool formattedTime(char * outBuffer64Bytes, char *format);
+
     /**
      * @brief for debug purposes you can make an offset
      * 
@@ -147,7 +155,7 @@ class Rs_time_helpers {
 char daysOfTheWeek[7][4] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 //char monthsOfTheYear[12][5] = {"Jan", "Feb"}
 
-void dateTimeToStringFormat_01(char * outBuffer50Bytes, DateTime now);
+void dateTimeToStringFormat_01(char * outBuffer50Bytes, const char *format);
 
 private:
     //UDP *udp;
@@ -181,7 +189,7 @@ private:
       } dstStart, dstEnd;
     //bool ntpUpdate();
     uint32_t localTime();
-    void currentTime();
+    void currentTime();   
     void beginDST();
     time_t calcDateDST(struct ruleDST rule, int year);
     bool summerTime();

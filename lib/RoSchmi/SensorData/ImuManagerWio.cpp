@@ -29,6 +29,14 @@ void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
     sampleSet.ImuSampleSet[currentIndex].X_Read = imuReadings.X_Read;
     sampleSet.ImuSampleSet[currentIndex].Y_Read = imuReadings.Y_Read;
     sampleSet.ImuSampleSet[currentIndex].Z_Read = imuReadings.Z_Read;
+    /*
+    Serial.println(sampleSet.ImuSampleSet[currentIndex].X_Read);
+    Serial.println(sampleSet.ImuSampleSet[currentIndex].Y_Read);
+    Serial.println(sampleSet.ImuSampleSet[currentIndex].Z_Read);
+    Serial.println("");
+    */
+
+
 }
 
 ImuSampleValues ImuManagerWio::GetLastImuReadings()

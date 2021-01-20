@@ -504,26 +504,28 @@ if (!WiFi.enableSTA(true))
   }
   
   dateTimeUTCNow = sysTime.getTime();
-  time_helpers.update(dateTimeUTCNow);
+  
 
   // Set Daylightsavingtime for central europe
   // The following two lines must be adapted to your DayLightSavings zone
-  time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
-  time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, 60); // last sunday in october 3:00, timezone +60min (+1 GMT)
+  time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, TIMEZONE + DSTOFFSET); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
+  time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, TIMEZONE); // last sunday in october 3:00, timezone +60min (+1 GMT)
+  time_helpers.update(dateTimeUTCNow);
+  time_helpers.begin();
 
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
   
+  // Temperature/Humidity Sensor
   dht.begin();
 
+  // Accelerometer
   lis.begin(Wire1);
   lis.setOutputDataRate(LIS3DHTR_DATARATE_25HZ); //Data output rate
   lis.setFullScaleRange(LIS3DHTR_RANGE_2G); //Scale range set to 2g
-  //lis.setFullScaleRange(LIS3DHTR_RANGE_8G); //Scale range set to 2g
+  
   imuManagerWio.begin();
   imuManagerWio.SetActive();
-
-
 
   // Wait for 2000 ms
   for (int i = 0; i < 3; i++)
@@ -540,6 +542,7 @@ if (!WiFi.enableSTA(true))
   
 
   dateTimeUTCNow = sysTime.getTime();
+  time_helpers.update(dateTimeUTCNow);
 
   String augmentedAnalogTableName = analogTableName;  
   if (augmentTableNameWithYear)
@@ -574,13 +577,13 @@ void showDisplayFrame()
     textFont = FSSB9;
     textColor = TFT_BLACK;
     current_text_line = 1;
-    const char * PROGMEM line_1 = (char *)"  Temperature      Humidity";
+    const char * PROGMEM line_1 = (char *)"    Temperature        Humidity";
     lcd_log_line((char *)line_1);
     current_text_line = 6;
-    const char * PROGMEM line_2 = (char *)"        Light            Movement";
+    const char * PROGMEM line_2 = (char *)"           Light             Movement";
     lcd_log_line((char *)line_2);
     current_text_line = 10;
-    const char * PROGMEM line_3 = (char *)"      (1)           (2)           (3)           (4)";
+    const char * PROGMEM line_3 = (char *)"";
     lcd_log_line((char *)line_3);
   }
 }
@@ -589,71 +592,90 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
 {
   if (showGraphScreen)
   {
+    static TFT_eSprite spr = TFT_eSprite(&tft);
+
+    static uint8_t lastDateOutputMinute = 60;
+
     an_1 = constrain(an_1, -999.9, 999.9);
     an_2 = constrain(an_2, -999.9, 999.9);
     an_3 = constrain(an_3, -999.9, 999.9);
     an_4 = constrain(an_4, -999.9, 999.9);
 
-    typedef char * postGap[4];
-    postGap postGapArray[4] {(char *)"\0", (char *)" \0", (char *)"  \0", (char *)"   \0"};
+    char preGapArray[4][5] = { "", " ", "  ", "   "};
 
-    const char* Gap1 = "    ";
-    const char* Gap2 = "    ";
     char lineBuf[40] {0};
-  
-    char an_left_Str[7] {0};
-    char an_right_Str[7] {0};
-    sprintf(an_left_Str, "%.1f", an_1);
-    sprintf(an_right_Str, "%.1f", an_2);
-  
-    if (an_1 == 999.9)
-    {
-      strcpy(an_left_Str, (char *)"--.-");
-    }
-    if (an_2 == 999.9)
-    {
-      strcpy(an_right_Str, (char *)"--.-");
-    }
-  
-    int i_1 = 6 - strlen(an_left_Str);
-    int i_2 = 6 - strlen(an_right_Str);
-   
-    sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
-    current_text_line = 3;
-    backColor = TFT_BLUE;
-    textFont = FSSBO18;
-    textColor = TFT_ORANGE;
-    lcd_log_line((char *)"");
-    lcd_log_line((char *)"");
-    current_text_line = 3;
-    lcd_log_line(lineBuf);
 
-    sprintf(an_left_Str, "%.1f", an_3);
-    sprintf(an_right_Str, "%.1f", an_4);
+    char valueStringArray[4][7] = {{0}, {0}, {0}, {0}};
 
-    if (an_3 == 999.9)
+    sprintf(valueStringArray[0], "%.1f", an_1);
+    sprintf(valueStringArray[1], "%.1f", an_2);
+    sprintf(valueStringArray[2], "%.1f", an_3);
+    sprintf(valueStringArray[3], "%.1f", an_4);
+
+    for (int i = 0; i < 4; i++)
     {
-      strcpy(an_left_Str, (char *)"--.-");
-    }
-    if (an_4 == 999.9)
-    {
-      strcpy(an_right_Str, (char *)"--.-");
+        if (strcmp(valueStringArray[i], "999.9") == 0)
+        {
+            strcpy(valueStringArray[i], "--.-");
+        }
     }
 
-    i_1 = 6 - strlen(an_left_Str);
-    i_2 = 6 - strlen(an_right_Str);
-   
-    sprintf(lineBuf, "%s%s%s%s%s%s ", (char *)Gap1, (char *)postGapArray[i_1], (char *)an_left_Str, (char *)Gap2, (char *)postGapArray[i_2], (char *)an_right_Str);
-    current_text_line = 8;
-    lcd_log_line((char *)"");
-    lcd_log_line((char *)"");
-    current_text_line = 8;
-    lcd_log_line(lineBuf);
-  
-    tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_GREEN : TFT_DARKGREY);
-    tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_GREEN : TFT_DARKGREY);
-    tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_GREEN : TFT_DARKGREY);
-    tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_GREEN : TFT_DARKGREY);
+    int charCounts[4];
+    charCounts[0] = 6 - strlen(valueStringArray[0]);
+    charCounts[1] = 6 - strlen(valueStringArray[1]);
+    charCounts[2] = 6 - strlen(valueStringArray[2]);
+    charCounts[3] = 6 - strlen(valueStringArray[3]);
+    
+    spr.createSprite(120, 30);
+
+    spr.setTextColor(TFT_ORANGE);
+    spr.setFreeFont(FSSBO18);
+
+    for (int i = 0; i <4; i++)
+    {
+      spr.fillSprite(TFT_DARKGREEN);
+      sprintf(lineBuf, "%s%s", preGapArray[charCounts[i]], valueStringArray[i]);
+      spr.drawString(lineBuf, 0, 0);
+      switch (i)
+      {
+        case 0: {spr.pushSprite(25, 54); break;}
+        case 1: {spr.pushSprite(160, 54); break;}
+        case 2: {spr.pushSprite(25, 138); break;}
+        case 3: {spr.pushSprite(160, 138); break;}
+      }     
+    }
+    
+    dateTimeUTCNow = sysTime.getTime();
+    time_helpers.update(dateTimeUTCNow);
+    int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+    
+    DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
+    
+    char formattedTime[64] {0};
+
+    volatile int theSize = sizeof(formattedTime);
+
+    time_helpers.formattedTime(formattedTime, "%d. %b %Y - %A %T");
+    
+    volatile uint8_t actMinute = localTime.minute();
+    if (lastDateOutputMinute != actMinute)
+    {
+      lastDateOutputMinute = actMinute;
+       current_text_line = 10;
+       sprintf(lineBuf, "%s", (char *)formattedTime);
+       lineBuf[strlen(lineBuf) -3] = '\0';
+       lcd_log_line(lineBuf);
+    }
+    
+    
+    
+    
+    
+    
+    tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_RED : TFT_DARKGREY);
   }
 }
 
@@ -700,7 +722,9 @@ void loop()
     }
     else            // it was not NTP Update, proceed with send to analog table or On/Off-table
     {
-      dateTimeUTCNow = sysTime.getTime();     
+      dateTimeUTCNow = sysTime.getTime();
+      time_helpers.update(dateTimeUTCNow);
+
       // Get offset in minutes between UTC and local time with consideration of DST
       time_helpers.update(dateTimeUTCNow);
       int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
@@ -812,7 +836,7 @@ void loop()
           // Store Entity to Azure Cloud   
           az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
         }
-        else     // Task to was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
+        else     // Task to do was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
         {
           
 
@@ -936,7 +960,7 @@ void loop()
     if (showGraphScreen)
     {
       fillDisplayFrame(dataContainer.SampleValues[0].Value, dataContainer.SampleValues[1].Value,
-                      dataContainer.SampleValues[2].Value, dataContainer.SampleValues[2].Value,
+                      dataContainer.SampleValues[2].Value, dataContainer.SampleValues[3].Value,
                       onOffDataContainer.ReadOnOffState(0), onOffDataContainer.ReadOnOffState(1),
                       onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3));
     }
@@ -1065,6 +1089,11 @@ float ReadAnalogSensor(int pAin)
                         {                         
                           theRead = MAGIC_NUMBER_INVALID;                      
                         }
+                        else
+                        {
+                          theRead += SENSOR_1_OFFSET;
+                        }
+                        
 
                     }
                     break;
@@ -1075,29 +1104,26 @@ float ReadAnalogSensor(int pAin)
                         // (if no sensor is connected the function returns 0)                        
                         theRead = dht.readTemperature();         
                         if (isnan(theRead) || (theRead > - 0.00001 && theRead < 0.00001))
-                        {
-                          volatile int dummy1234 = 1;
-                          theRead = MAGIC_NUMBER_INVALID;
-                          
+                        {                         
+                          theRead = MAGIC_NUMBER_INVALID;                         
                         }
                         else
-                        {
-                          volatile int dummy2234 = 1;
-                          theRead = dht.readHumidity();
-                         
+                        {                        
+                          theRead = dht.readHumidity();                        
                         }
                     }
                     break;
                 case 2:
                     {
-                        /*
+                        
                         theRead = analogRead(WIO_LIGHT);
                         theRead = map(theRead, 0, 1023, 0, 100);
                         theRead = theRead < 0 ? 0 : theRead > 100 ? 100 : theRead;
-                        */
-
+                        
+                        /*
                         theRead = insertCounterAnalogTable;
-                        theRead = theRead / 10;                          
+                        theRead = theRead / 10;
+                        */                          
                     }
                     break;
                 case 3:
@@ -1292,6 +1318,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1
     
     dateTimeUTCNow = sysTime.getTime();
+    time_helpers.update(dateTimeUTCNow);
     uint32_t actRtcTime = dateTimeUTCNow.secondstime();
     //unsigned long  utcHeaderDateTime = responseHeaderDateTime.secondstime();
     dateTimeUTCNow = responseHeaderDateTime;
