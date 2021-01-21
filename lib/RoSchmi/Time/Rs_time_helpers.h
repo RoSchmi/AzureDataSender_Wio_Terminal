@@ -140,7 +140,7 @@ class Rs_time_helpers {
      */
     char* formattedTime(const char *format);
 
-    bool formattedTime(char * outBuffer64Bytes, char *format);
+    bool formattedTime(char * outBuffer64Bytes, uint32_t bufferSize, char *format);
 
     /**
      * @brief for debug purposes you can make an offset

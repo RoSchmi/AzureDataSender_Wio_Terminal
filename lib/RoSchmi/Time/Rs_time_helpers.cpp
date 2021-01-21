@@ -132,13 +132,13 @@ bool Rs_time_helpers::isDST() {
   return timeString;
   }
 
-  bool Rs_time_helpers::formattedTime(char * outBuffer64Bytes, char *format)
+  bool Rs_time_helpers::formattedTime(char * outBuffer64Bytes, uint32_t bufferSize, char *format)
   {
     currentTime();
     memset(timeString, 0, sizeof(timeString));
     int len = strftime(timeString, sizeof(timeString), format, current);
     volatile int lenOfBuf = sizeof(outBuffer64Bytes);
-    if (len != 0)
+    if (bufferSize > strlen(timeString))
     {
       strcpy(outBuffer64Bytes, timeString);
       return true;

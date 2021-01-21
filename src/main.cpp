@@ -156,6 +156,7 @@ bool showGraphScreen = SHOW_GRAPHIC_SCREEN == 1;
 
 uint32_t loopCounter = 0;
 unsigned int insertCounterAnalogTable = 0;
+uint32_t tryUploadCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
 
@@ -172,6 +173,8 @@ byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packe
 
 bool ledState = false;
 uint8_t lastResetCause = -1;
+
+bool sendResultState = true;
 
 uint32_t failedUploadCounter = 0;
 
@@ -214,7 +217,7 @@ static void button_handler_right()
 
 static void button_handler_mid() 
 {
-  volatile int state = digitalRead(BUTTON_2);
+  int state = digitalRead(BUTTON_2);
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
   int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
@@ -223,7 +226,7 @@ static void button_handler_mid()
 
 static void button_handler_left() 
 {
-  volatile int state = digitalRead(BUTTON_3);
+  int state = digitalRead(BUTTON_3);
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
   int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
@@ -258,7 +261,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccount
 void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_span outSpan, size_t *outSpanLength);
 void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
 void showDisplayFrame();
-void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4);
+void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool sendResultState, uint32_t tryUpLoadCtr);
 
 
 // Seems not to work
@@ -291,8 +294,9 @@ void setup()
 
   pinMode(WIO_5S_PRESS, INPUT_PULLUP);
 
-  pinMode(BUTTON_1, INPUT);
-  pinMode(BUTTON_3, INPUT);
+  pinMode(BUTTON_1, INPUT_PULLUP);
+  pinMode(BUTTON_2, INPUT_PULLUP);
+  pinMode(BUTTON_3, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BUTTON_1), button_handler_right, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_2), button_handler_mid, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
@@ -311,7 +315,8 @@ void setup()
   
   //Initialize OnOffSwitcher
   onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 30 sec
-  onOffSwitcherWio.SetActive();
+  onOffSwitcherWio.SetInactive();
+  //onOffSwitcherWio.SetActive();
   
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
@@ -560,7 +565,7 @@ if (!WiFi.enableSTA(true))
 
 
   showDisplayFrame();
-  fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false);
+  fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false, sendResultState, tryUploadCounter);
 
 
   delay(50);
@@ -587,7 +592,7 @@ void showDisplayFrame()
   }
 }
 
-void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4)
+void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool pSendResultState, uint32_t pTryUploadCtr)
 {
   if (showGraphScreen)
   {
@@ -595,6 +600,10 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
 
     static uint8_t lastDateOutputMinute = 60;
 
+    static uint32_t lastTryUploadCtr = 0;
+
+    static bool lastSendResultState = false;
+    
     an_1 = constrain(an_1, -999.9, 999.9);
     an_2 = constrain(an_2, -999.9, 999.9);
     an_3 = constrain(an_3, -999.9, 999.9);
@@ -652,21 +661,41 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     
     char formattedTime[64] {0};
 
-    volatile int theSize = sizeof(formattedTime);
-
-    time_helpers.formattedTime(formattedTime, "%d. %b %Y - %A %T");
+    time_helpers.formattedTime(formattedTime, sizeof(formattedTime), "%d. %b %Y - %A %T");
     
     volatile uint8_t actMinute = localTime.minute();
     if (lastDateOutputMinute != actMinute)
     {
-      lastDateOutputMinute = actMinute;
-       //showDisplayFrame();   // Restore the frame every minute, could be damaged
+      lastDateOutputMinute = actMinute;     
        current_text_line = 10;
        sprintf(lineBuf, "%s", (char *)formattedTime);
        lineBuf[strlen(lineBuf) -3] = '\0';
        lcd_log_line(lineBuf);
     }
-    
+
+    // Show signal circle on the screen, showing if upload was successfful (green) or not (red)
+    if (pTryUploadCtr != lastTryUploadCtr)    // if new upload try has happened, show actualized signal 
+    {
+        if (pSendResultState)
+        {
+          tft.fillCircle(300, 9, 8, TFT_DARKGREEN);
+          lastSendResultState = true;          
+        }
+        else
+        {
+          tft.fillCircle(300, 9, 8, TFT_RED);
+          lastSendResultState = false;         
+        }       
+        lastTryUploadCtr = pTryUploadCtr;
+    }
+    else                                  // if no upload try --> switch off if it was green before
+    {
+        if (lastSendResultState == true)
+        {
+          tft.fillCircle(300, 9, 8, TFT_BLUE);
+        }
+    }
+  
     tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_RED : TFT_DARKGREY);
     tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_RED : TFT_DARKGREY);
     tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_RED : TFT_DARKGREY);
@@ -833,6 +862,7 @@ void loop()
 
           // Store Entity to Azure Cloud   
           az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+
         }
         else     // Task to do was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
         {
@@ -960,7 +990,8 @@ void loop()
       fillDisplayFrame(dataContainer.SampleValues[0].Value, dataContainer.SampleValues[1].Value,
                       dataContainer.SampleValues[2].Value, dataContainer.SampleValues[3].Value,
                       onOffDataContainer.ReadOnOffState(0), onOffDataContainer.ReadOnOffState(1),
-                      onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3));
+                      onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3),
+                      sendResultState, tryUploadCounter);
     }
     
   }
@@ -1285,6 +1316,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 */
 
 
+
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
   //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
 
@@ -1304,14 +1336,16 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   // statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
 
   lastResetCause = 0;
+  tryUploadCounter++;
 
-  char codeString[35] {0};
+  
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
-  { 
-    sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));
-
+  {
+    sendResultState = true;
     if (!showGraphScreen)
-    {   
+    { 
+      char codeString[35] {0};
+      sprintf(codeString, "%s %i", "Entity inserted: ", az_http_status_code(statusCode));
       lcd_log_line((char *)codeString);
     }
     
@@ -1339,10 +1373,12 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
                   // negative values cannot be returned as 'az_http_status_code' 
 
     failedUploadCounter++;
+    sendResultState = false;
     lastResetCause = 100;
     
     if (!showGraphScreen)
     {
+      char codeString[35] {0};
       sprintf(codeString, "%s %i", "Insertion failed: ", az_http_status_code(statusCode));
       lcd_log_line((char *)codeString);
     }
