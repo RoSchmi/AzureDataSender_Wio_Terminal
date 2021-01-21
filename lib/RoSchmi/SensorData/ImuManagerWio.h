@@ -4,7 +4,7 @@
 #ifndef _IMU_MANAGER_WIO_H_
 #define _IMU_MANAGER_WIO_H_
 
-#define IMU_ARRAY_ELEMENT_COUNT 3
+#define IMU_ARRAY_ELEMENT_COUNT 5
 
 typedef struct
 {
@@ -40,6 +40,7 @@ private:
     bool isActive = false;
     int currentIndex = 0;
     bool averageIsReady = false;
+    float floatingAverage(ImuSampleValueSet sampleSet, int arrayElementCnt, char axis);
 
 };
 

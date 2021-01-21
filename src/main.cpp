@@ -424,7 +424,6 @@ if (!WiFi.enableSTA(true))
     int timeout = SAMCrashMonitor::enableWatchdog(4000);
     sprintf(buf, "Watchdog enabled: %i %s", timeout, "ms");
     lcd_log_line(buf);
-
   #endif
   
   IPAddress localIpAddress = WiFi.localIP();
@@ -661,16 +660,12 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     if (lastDateOutputMinute != actMinute)
     {
       lastDateOutputMinute = actMinute;
+       //showDisplayFrame();   // Restore the frame every minute, could be damaged
        current_text_line = 10;
        sprintf(lineBuf, "%s", (char *)formattedTime);
        lineBuf[strlen(lineBuf) -3] = '\0';
        lcd_log_line(lineBuf);
     }
-    
-    
-    
-    
-    
     
     tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_RED : TFT_DARKGREY);
     tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_RED : TFT_DARKGREY);
@@ -711,10 +706,13 @@ void loop()
         {       
             dateTimeUTCNow = utcNtpTime;
             sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
-            //lastNtpUpdate = dateTimeUTCNow.secondstime();
-            char buffer[] = "Utc: YYYY-MM-DD hh:mm:ss";
-            dateTimeUTCNow.toString(buffer);
-            lcd_log_line((char *)buffer);  
+            
+            if (!showGraphScreen)
+            { 
+              char buffer[] = "Utc: YYYY-MM-DD hh:mm:ss";           
+              dateTimeUTCNow.toString(buffer);
+              lcd_log_line((char *)buffer);
+            } 
             
             sysTime.setTime(dateTimeUTCNow);
             timeNtpUpdateCounter++;   
@@ -1115,36 +1113,39 @@ float ReadAnalogSensor(int pAin)
                     break;
                 case 2:
                     {
-                        
+                        // Upload counter, limited to max. value of 1399
+                        theRead = (insertCounterAnalogTable % 1399) / 10.0 ;
+                                                
+                        /*
+                        // Read the light sensor (not used here, collumn is used as upload counter)
                         theRead = analogRead(WIO_LIGHT);
                         theRead = map(theRead, 0, 1023, 0, 100);
                         theRead = theRead < 0 ? 0 : theRead > 100 ? 100 : theRead;
-                        
-                        /*
-                        theRead = insertCounterAnalogTable;
-                        theRead = theRead / 10;
-                        */                          
+                        */                                            
                     }
                     break;
                 case 3:
+                                      
+                    {
+                        // Read the last reset cause for dignostic purpose 
+                        theRead = lastResetCause;                        
+                    }
+                    
+
+
+                    // Read the accelerometer (not used here)
+                    // First experiments, don't work well
                     /*
-                    // Read the accelerometer
                     {
                         ImuSampleValues sampleValues;
                         sampleValues.X_Read = lis.getAccelerationX();
                         sampleValues.Y_Read = lis.getAccelerationY();
-                        sampleValues.Z_Read = lis.getAccelerationZ() + 1;
+                        sampleValues.Z_Read = lis.getAccelerationZ();
                         imuManagerWio.SetNewImuReadings(sampleValues);
-                        theRead = imuManagerWio.GetLastImuReadings().Z_Read;
-                        // Serial.println(theRead * 10);
-                        // constrain(x, a, b);                      
-                    }
+
+                        theRead = imuManagerWio.GetVibrationValue();                                                                 
+                    } 
                     */
-                    
-                    {
-                        theRead = lastResetCause;                        
-                    }
-                    
                     break;
             }
             theRead = isnan(theRead) ? MAGIC_NUMBER_INVALID : theRead;

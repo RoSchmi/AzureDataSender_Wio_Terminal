@@ -4,6 +4,12 @@
 
 ImuSampleValueSet sampleSet;
 
+
+
+float averageX = 0;
+float averageY = 0;
+float averageZ = 0;
+
 ImuManagerWio::ImuManagerWio()
 {}
 
@@ -29,16 +35,55 @@ void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
     sampleSet.ImuSampleSet[currentIndex].X_Read = imuReadings.X_Read;
     sampleSet.ImuSampleSet[currentIndex].Y_Read = imuReadings.Y_Read;
     sampleSet.ImuSampleSet[currentIndex].Z_Read = imuReadings.Z_Read;
-    /*
-    Serial.println(sampleSet.ImuSampleSet[currentIndex].X_Read);
-    Serial.println(sampleSet.ImuSampleSet[currentIndex].Y_Read);
-    Serial.println(sampleSet.ImuSampleSet[currentIndex].Z_Read);
+
+    averageX =  floatingAverage(sampleSet, IMU_ARRAY_ELEMENT_COUNT, 'X');
+    averageY =  floatingAverage(sampleSet, IMU_ARRAY_ELEMENT_COUNT, 'Y');
+    averageZ =  floatingAverage(sampleSet, IMU_ARRAY_ELEMENT_COUNT, 'Z');
+
+    Serial.println(averageX);
+    Serial.println(averageY);
+    Serial.println(averageZ);
     Serial.println("");
-    */
-
-
+    
 }
 
+float ImuManagerWio::floatingAverage(ImuSampleValueSet sampleSet, int arrayElementCnt, char axis)
+{
+    float sum = 0;
+
+    for (int i = 0; i < arrayElementCnt; i++)
+    {
+        switch (axis)
+        {
+            case 'X':
+                {
+                    sum += sampleSet.ImuSampleSet[i].X_Read;
+                }
+                break;
+                case 'Y':
+                {
+                    sum += sampleSet.ImuSampleSet[i].Y_Read;
+                }
+                break;
+                case 'Z':
+                {
+                    sum += sampleSet.ImuSampleSet[i].Z_Read;
+                }
+                break;
+                default:
+                {
+                    while (true)
+                    {
+                        Serial.println("Error in ImuManagerWio");
+                        delay(1000);
+                    }
+                                     
+            }
+        }
+    }   
+    return sum / arrayElementCnt;
+}
+    
 ImuSampleValues ImuManagerWio::GetLastImuReadings()
 {
     ImuSampleValues retValues;
@@ -51,22 +96,34 @@ ImuSampleValues ImuManagerWio::GetLastImuReadings()
 
 float ImuManagerWio::GetVibrationValue()
 {
-    float retValue = 0;
+    // First tests -- doesn't wor well
+
+    ImuSampleValueSet averagedSampleSet;
+
+    volatile float retValue = 0;
+
+    float summedSqDev_X = 0;
+    float summedSqDev_Y = 0;
+    float summedSqDev_Z = 0;
+
     if (!isActive)
     {
         return 0;
     }
     else
     {
-        
         for (int i = 0; i < IMU_ARRAY_ELEMENT_COUNT; i++)
-        {
-            //retValue += abs(sampleSet.ImuSampleSet[i].X_Read);
-            retValue += abs(sampleSet.ImuSampleSet[i].Y_Read);
-            //retValue += abs(sampleSet.ImuSampleSet[i].Z_Read);
+        {   
+            // deviation squares
+            averagedSampleSet.ImuSampleSet[i].X_Read = sq((sampleSet.ImuSampleSet[i].X_Read - averageX) * 10 );
+            summedSqDev_X += averagedSampleSet.ImuSampleSet[i].X_Read;
+            averagedSampleSet.ImuSampleSet[i].Y_Read = sq((sampleSet.ImuSampleSet[i].Y_Read - averageY) + 10);
+            summedSqDev_Y += averagedSampleSet.ImuSampleSet[i].Y_Read;
+            averagedSampleSet.ImuSampleSet[i].Z_Read = sq((sampleSet.ImuSampleSet[i].Z_Read - averageZ) + 10);
+            summedSqDev_Z += averagedSampleSet.ImuSampleSet[i].Z_Read;      
         }
-        return retValue / IMU_ARRAY_ELEMENT_COUNT;
-
+        retValue = (summedSqDev_X + summedSqDev_Y + summedSqDev_Z) / (IMU_ARRAY_ELEMENT_COUNT * 3);
+        return retValue;
     } 
 }
 
