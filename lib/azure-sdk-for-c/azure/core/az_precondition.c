@@ -9,11 +9,8 @@
 static void az_precondition_failed_default()
 {
   /* By default, when a precondition fails the calling thread spins forever */
-  volatile int ctr = 0;
   while (1)
   {
-    //RoSchmi
-    ctr++;
   }
 }
 

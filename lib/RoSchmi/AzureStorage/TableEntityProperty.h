@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <azure/core/az_span.h>
 
+
 #ifndef _TABLE_ENTITY_PROPERTY_H_
 #define _TABLE_ENTITY_PROPERTY_H_
 

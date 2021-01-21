@@ -25,9 +25,6 @@
 
 #include <azure/core/_az_cfg_prefix.h>
 
-//RoSchmi
-#define AZ_NO_PRECONDITION_CHECKING
-
 /**
  * @brief Represents a "view" over a byte buffer that represents a contiguous region of memory. It
  * contains a pointer to the start of the byte buffer and the buffer's size.
@@ -108,7 +105,7 @@ AZ_NODISCARD az_span az_span_create(uint8_t* ptr, int32_t size);
 #define AZ_SPAN_LITERAL_FROM_STR(STRING_LITERAL)      \
   {                                                   \
     ._internal = {                                    \
-      .ptr = (uint8_t*)STRING_LITERAL,                \
+      .ptr = (uint8_t*)(STRING_LITERAL),              \
       .size = _az_STRING_LITERAL_LEN(STRING_LITERAL), \
     },                                                \
   }
@@ -129,12 +126,12 @@ AZ_NODISCARD az_span az_span_create(uint8_t* ptr, int32_t size);
 
 // Returns 1 if the address of the array is equal to the address of its 1st element.
 // Returns 0 for anything that is not an array (for example any arbitrary pointer).
-#define _az_IS_ARRAY(array) (((void*)&(array)) == ((void*)(&array[0])))
+#define _az_IS_ARRAY(array) (((void*)&(array)) == ((void*)(&(array)[0])))
 
 // Returns 1 if the element size of the array is 1 (which is only true for byte arrays such as
 // uint8_t[] and char[]).
 // Returns 0 for any other element size (for example int32_t[]).
-#define _az_IS_BYTE_ARRAY(array) ((sizeof(array[0]) == 1) && _az_IS_ARRAY(array))
+#define _az_IS_BYTE_ARRAY(array) ((sizeof((array)[0]) == 1) && _az_IS_ARRAY(array))
 
 /**
  * @brief Returns an #az_span expression over an uninitialized byte buffer.
@@ -151,7 +148,7 @@ AZ_NODISCARD az_span az_span_create(uint8_t* ptr, int32_t size);
 // Force a division by 0 that gets detected by compilers for anything that isn't a byte array.
 #define AZ_SPAN_FROM_BUFFER(BYTE_BUFFER) \
   az_span_create(                        \
-      (uint8_t*)BYTE_BUFFER, (sizeof(BYTE_BUFFER) / (_az_IS_BYTE_ARRAY(BYTE_BUFFER) ? 1 : 0)))
+      (uint8_t*)(BYTE_BUFFER), (sizeof(BYTE_BUFFER) / (_az_IS_BYTE_ARRAY(BYTE_BUFFER) ? 1 : 0)))
 
 /**
  * @brief Returns an #az_span from a 0-terminated array of bytes (chars).
@@ -306,6 +303,7 @@ az_span az_span_copy_u8(az_span destination, uint8_t byte);
  */
 AZ_INLINE void az_span_fill(az_span destination, uint8_t value)
 {
+  // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
   memset(az_span_ptr(destination), value, (size_t)az_span_size(destination));
 }
 
@@ -391,8 +389,8 @@ AZ_NODISCARD az_result az_span_atod(az_span source, double* out_number);
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p destination is not big enough to contain the
- * copied bytes.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p destination is not big enough to contain the copied
+ * bytes.
  */
 AZ_NODISCARD az_result az_span_i32toa(az_span destination, int32_t source, az_span* out_span);
 
@@ -408,8 +406,8 @@ AZ_NODISCARD az_result az_span_i32toa(az_span destination, int32_t source, az_sp
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p destination is not big enough to contain the
- * copied bytes.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p destination is not big enough to contain the copied
+ * bytes.
  */
 AZ_NODISCARD az_result az_span_u32toa(az_span destination, uint32_t source, az_span* out_span);
 
@@ -425,8 +423,8 @@ AZ_NODISCARD az_result az_span_u32toa(az_span destination, uint32_t source, az_s
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p destination is not big enough to contain the
- * copied bytes.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p destination is not big enough to contain the copied
+ * bytes.
  */
 AZ_NODISCARD az_result az_span_i64toa(az_span destination, int64_t source, az_span* out_span);
 
@@ -442,8 +440,8 @@ AZ_NODISCARD az_result az_span_i64toa(az_span destination, int64_t source, az_sp
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p destination is not big enough to contain the
- * copied bytes.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p destination is not big enough to contain the copied
+ * bytes.
  */
 AZ_NODISCARD az_result az_span_u64toa(az_span destination, uint64_t source, az_span* out_span);
 
@@ -461,8 +459,8 @@ AZ_NODISCARD az_result az_span_u64toa(az_span destination, uint64_t source, az_s
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p destination is not big enough to contain the
- * copied bytes.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p destination is not big enough to contain the copied
+ * bytes.
  * @retval #AZ_ERROR_NOT_SUPPORTED The \p source is not a finite decimal number or contains an
  * integer component that is too large and would overflow beyond `2^53 - 1`.
  *
@@ -520,7 +518,7 @@ typedef struct
  * This function must never return an empty #az_span, unless the requested buffer size is not
  * available. In which case, it must return an error #az_result.
  *
- * @remarks The caller must check the return value using #az_result_succeeded() before continuing to
+ * @remarks The caller must check the return value using #az_result_failed() before continuing to
  * use the \p out_next_destination.
  */
 typedef az_result (*az_span_allocator_fn)(

@@ -16,11 +16,11 @@ ImuManagerWio::ImuManagerWio()
 void ImuManagerWio::begin()
 {}
 
+/*
 ImuSampleValues   ImuManagerWio::GetStates()
 {
-
 }
-
+*/
 void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
 {
     if (currentIndex == IMU_ARRAY_ELEMENT_COUNT - 1)

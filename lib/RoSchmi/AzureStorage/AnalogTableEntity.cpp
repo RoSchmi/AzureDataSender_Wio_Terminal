@@ -1,6 +1,7 @@
 #include <AzureStorage/AnalogTableEntity.h>
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
+#include <azure/core/az_span.h>
 
         
         //EntityProperty * Properties;

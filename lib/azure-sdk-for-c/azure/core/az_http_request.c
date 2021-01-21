@@ -105,7 +105,7 @@ AZ_NODISCARD az_result az_http_request_set_query_parameter(
   // Parameter value
   if (is_value_url_encoded)
   {
-    url_remainder = az_span_copy(url_remainder, value);
+    az_span_copy(url_remainder, value);
   }
   else
   {
@@ -124,22 +124,16 @@ az_http_request_append_header(az_http_request* ref_request, az_span name, az_spa
   _az_PRECONDITION_NOT_NULL(ref_request);
 
   // remove whitespace characters from key and value
-  // RoSchmi
   name = _az_span_trim_whitespace(name);
   value = _az_span_trim_whitespace(value);
-  //az_span nameNew = _az_span_trim_whitespace(name);
-  //az_span valueNew = _az_span_trim_whitespace(value);
 
   _az_PRECONDITION_VALID_SPAN(name, 1, false);
-  //_az_PRECONDITION_VALID_SPAN(nameNew, 1, false);
 
   // Make this function to only work with valid input for header name
   _az_PRECONDITION(az_http_is_valid_header_name(name));
-  //_az_PRECONDITION(az_http_is_valid_header_name(nameNew));
 
   az_span headers = ref_request->_internal.headers;
   _az_http_request_header header_to_append = { .name = name, .value = value };
-  //_az_http_request_header header_to_append = { .name = nameNew, .value = valueNew };
 
   _az_RETURN_IF_NOT_ENOUGH_SIZE(headers, (int32_t)sizeof header_to_append);
 
@@ -150,9 +144,6 @@ az_http_request_append_header(az_http_request* ref_request, az_span name, az_spa
       az_span_create((uint8_t*)&header_to_append, sizeof header_to_append));
 
   ref_request->_internal.headers_length++;
-  
-  //RoSchmi
-  volatile az_span theHeaders = ref_request->_internal.headers;
 
   return AZ_OK;
 }

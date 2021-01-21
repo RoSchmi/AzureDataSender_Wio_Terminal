@@ -65,7 +65,8 @@ typedef struct
 } _az_http_request_header;
 
 /**
- * @brief A type representing a buffer of #_az_http_header instances for HTTP request headers.
+ * @brief A type representing a buffer of #_az_http_request_header instances for HTTP request
+ * headers.
  */
 typedef az_span _az_http_request_headers;
 
@@ -112,7 +113,7 @@ typedef AZ_NODISCARD az_result (*_az_http_policy_process_fn)(
 
 /**
  * @brief HTTP policy.
- * An HTTP pipeline inside SDK clients is an array of http policies.
+ * An HTTP pipeline inside SDK clients is an array of HTTP policies.
  */
 struct _az_http_policy
 {
@@ -128,8 +129,8 @@ struct _az_http_policy
  *
  * @param[in] request HTTP request to get HTTP header from.
  * @param[in] index Index of the HTTP header to get.
- * @param[out] out_name Pointer to an #az_span to write the header's name.
- * @param[out] out_value Pointer to an #az_span to write the header's value.
+ * @param[out] out_name A pointer to an #az_span to write the header's name.
+ * @param[out] out_value A pointer to an #az_span to write the header's value.
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
@@ -195,8 +196,8 @@ AZ_NODISCARD az_result az_http_request_get_body(az_http_request const* request, 
  *
  * @return An #az_result value indicating the result of the operation.
  * @retval #AZ_OK Success.
- * @retval #AZ_ERROR_INSUFFICIENT_SPAN_SIZE The \p response buffer is not big enough to contain the
- * \p source content.
+ * @retval #AZ_ERROR_NOT_ENOUGH_SPACE The \p response buffer is not big enough to contain the \p
+ * source content.
  */
 AZ_NODISCARD az_result az_http_response_append(az_http_response* ref_response, az_span source);
 
@@ -225,6 +226,8 @@ AZ_NODISCARD int32_t az_http_request_headers_count(az_http_request const* reques
  * @retval #AZ_ERROR_HTTP_RESPONSE_COULDNT_RESOLVE_HOST The URL from \p ref_request can't be
  * resolved by the HTTP stack and the request was not sent.
  * @retval #AZ_ERROR_HTTP_ADAPTER Any other issue from the transport adapter layer.
+ * @retval #AZ_ERROR_DEPENDENCY_NOT_PROVIDED No platform implementation was supplied to support this
+ * function.
  */
 AZ_NODISCARD az_result
 az_http_client_send_request(az_http_request const* request, az_http_response* ref_response);

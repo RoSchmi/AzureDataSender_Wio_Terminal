@@ -10,9 +10,6 @@
 
 #include <azure/core/_az_cfg.h>
 
-//RoSchmi
-//#include<roschmi_az_http_helpers.h>
-
 static const az_span AZ_HTTP_HEADER_USER_AGENT = AZ_SPAN_LITERAL_FROM_STR("User-Agent");
 
 AZ_NODISCARD az_result az_http_pipeline_policy_apiversion(
@@ -89,7 +86,6 @@ AZ_NODISCARD az_result az_http_pipeline_policy_transport(
 
   // make sure the response is resetted
   _az_http_response_reset(ref_response);
-  //az_result fakeResult = AZ_ERROR_HTTP_INVALID_METHOD_VERB;
-  //return fakeResult;
+
   return az_http_client_send_request(ref_request, ref_response);
 }

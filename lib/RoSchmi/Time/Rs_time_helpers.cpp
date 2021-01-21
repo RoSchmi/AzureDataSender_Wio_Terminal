@@ -136,8 +136,8 @@ bool Rs_time_helpers::isDST() {
   {
     currentTime();
     memset(timeString, 0, sizeof(timeString));
-    int len = strftime(timeString, sizeof(timeString), format, current);
-    volatile int lenOfBuf = sizeof(outBuffer64Bytes);
+    strftime(timeString, sizeof(timeString), format, current);
+    
     if (bufferSize > strlen(timeString))
     {
       strcpy(outBuffer64Bytes, timeString);

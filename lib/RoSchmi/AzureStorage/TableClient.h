@@ -8,6 +8,7 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
 
+//#include <azure/core/az_http.h>
 #include <azure/core/az_http.h>
 
 #include <Time/SysTime.h>
@@ -51,7 +52,7 @@ public:
     //TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient, WiFiClientSecure *wifiClient);
     ~TableClient();
     
-    void send();
+    //void send();
 
     az_http_status_code CreateTable(const char * tableName, ContType pContentType = ContType::contApplicationIatomIxml, AcceptType pAcceptType = AcceptType::acceptApplicationIjson, ResponseType pResponseType = ResponseType::returnContent, bool useSharedKeyLight = false);
     az_http_status_code InsertTableEntity(const char * tableName, TableEntity pEntity, char* out_ETAG, DateTime * outResonseHeaderDate, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite = false);   

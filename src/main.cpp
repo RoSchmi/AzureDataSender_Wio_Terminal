@@ -8,6 +8,9 @@
   // I started to make this App from the Azure Storage Blob Example see: 
   // https://github.com/Azure/azure-sdk-for-c/blob/5c7444dfcd5f0b3bcf3aec2f7b62639afc8bd664/sdk/samples/storage/blobs/src/blobs_client_example.c
 
+  // The used Azure-sdk-for-c libraries were Vers. 1.1.0-beta.3
+  // https://github.com/Azure/azure-sdk-for-c/releases/tag/1.1.0-beta.3
+
   //For a BLOB the Basis-URI consists of the name of the account, the namen of the Container and the namen of the BLOB:
   //https://myaccount.blob.core.windows.net/mycontainer/myblob
   //https://docs.microsoft.com/de-de/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata
@@ -35,6 +38,7 @@
 #include <config_secret.h>
 
 #include <AzureStorage/CloudStorageAccount.h>
+
 #include <AzureStorage/TableClient.h>
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
@@ -54,11 +58,23 @@
 #include "SensorData/OnOffSwitcherWio.h"
 #include "SensorData/ImuManagerWio.h"
 
+
+//#include <azure/az_core.h>
+//#include <azure/az_iot.h>
+
+
 #include <azure/core/az_platform.h>
+
 //#include <platform.h>
-#include <azure/core/az_config_internal.h>
+
+#include <azure/core/internal/az_config_internal.h>
+//#include <core/az_config.h>
+
 #include <azure/core/az_context.h>
+//#include <core/az_context.h>
+
 #include <azure/core/az_http.h>
+//#include <core/az_http.h>
 
 #include <az_wioterminal_roschmi.h> 
 
@@ -78,24 +94,48 @@
 #include "Free_Fonts.h" //include the header file
 
 #include <azure/core/az_json.h>
+//#include <core/az_json.h>
 
 #include <azure/core/az_result.h>
+//#include <az_result.h>
+
+
+
+
 #include <azure/core/az_span.h>
+//#include <core/az_span.h>
+
+
 #include <azure/core/az_config.h>
+//#include <core/az_config.h>
+
 
 #include <azure/core/az_http.h>
+
+
 #include <azure/core/az_context.h>
+//#include <core/az_context.h>
+
 
 #include <azure/core/az_http_transport.h>
+//#include <core/az_http_transport.h>
+
 
 //#include <azure/core/_az_cfg_prefix.h>   // may not be included
 
 #include <azure/iot/az_iot_hub_client.h>
+//#include <iot/az_iot_hub_client.h>
+
 
 #include <azure/iot/az_iot_common.h>
+//#include <iot/az_iot_common.h>
 
 #include <azure/core/az_platform.h>
-#include <azure/core/az_retry_internal.h>
+//#include <core/az_platform.h>
+
+#include <azure/core/internal/az_retry_internal.h>
+//#include <core/az_retry_internal.h>
+
 
 #include <azure/iot/az_iot_hub_client.h>
 
@@ -1316,9 +1356,9 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 */
 
 
-
+  
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
-  //TableClient table(pAccountPtr, pCaCert,  httpPtr, wifi_client);
+  
 
 
   #if WORK_WITH_WATCHDOG == 1
@@ -1326,18 +1366,21 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   #endif
   // Insert Entity
   DateTime responseHeaderDateTime = DateTime();
+
+  
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity, (char *)outInsertETag, &responseHeaderDateTime, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
   
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
   #endif
 
-  // RoSchmi for tests: to simulate failed upload
-  // statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
+  
 
   lastResetCause = 0;
   tryUploadCounter++;
 
+   // RoSchmi for tests: to simulate failed upload
+  //az_http_status_code   statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
   
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   {
@@ -1417,6 +1460,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     #endif
     delay(1000);
   }
+  return statusCode;
 }
 
 
@@ -1439,12 +1483,16 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
       SAMCrashMonitor::iAmAlive();
 #endif
 
-
+  
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Create Table
   az_http_status_code statusCode = table.CreateTable(pTableName, contApplicationIatomIxml, acceptApplicationIjson, returnContent, false);
   
+   // RoSchmi for tests: to simulate failed upload
+   //az_http_status_code   statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
+
+
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   {

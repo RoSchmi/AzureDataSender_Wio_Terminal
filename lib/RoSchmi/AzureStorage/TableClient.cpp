@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <Encryption/RoSchmi_encryption_helpers.h>
 #include <AzureStorage/roschmi_az_storage_tables.h>
-//#include <Time/Rs_time_helpers.h>
+#include <Time/Rs_time_helpers.h>
 
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
@@ -147,44 +147,10 @@ TableClient::~TableClient()
 {};
 
 
-void TableClient::send()
-{
-
-   
-    /*
-    String theUrl = "jsonplaceholder.typicode.com";
-    String thePath = "/posts?userId=1";
 
 
-    String theUrl = "prax47.table.core.windows.net";
-    String thePath = "/";     
-    
-    _httpPtr->begin(theUrl, (uint16_t)443, thePath, _caCert);
-    int httpCode = _httpPtr->GET();
-    if (httpCode > 0) { //Check for the returning code 
-      String payload = _httpPtr->getString();
-      //lcd_log_line("Http-Code:");
-      //lcd_log_line(itoa((int)httpCode, buf, 10));
-      int length = payload.length();
-      int indexCtr = 0;
-      int pageWidth = 30;
-      Serial.println(httpCode);
-      delay(2000);
-      while (indexCtr < length)
-      {
-        indexCtr += pageWidth;
-      } 
-     // Serial.println(payload);
-    }
-    else {
-     // Serial.println("Error on HTTP request");
-      volatile int dummy2 = 1;
-      dummy2++;
-    }
-    */
-}
-
-az_http_status_code TableClient::CreateTable(const char * tableName, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
+az_http_status_code TableClient::CreateTable(const char * tableName, ContType pContentType, 
+AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 {
    // limit length of tablename to max_tablename_length
    char * validTableName = (char *)tableName;
@@ -270,7 +236,7 @@ az_http_status_code TableClient::CreateTable(const char * tableName, ContType pC
 
 
 
-az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);  
+  az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);  
 
 
 
@@ -291,7 +257,8 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   char authorizationHeaderBuffer[100] {0};
 
   //CreateTableAuthorizationHeader((char *)addBuffer, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
-  CreateTableAuthorizationHeader((char *)addBufAddress, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
+  CreateTableAuthorizationHeader((char *)addBufAddress, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, 
+  contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
 
 
   //String authorizationHeader = String((char *)authorizationHeaderBuffer);
@@ -303,7 +270,7 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
           &tabClient, az_span_create_from_str((char *)Url.c_str()), AZ_CREDENTIAL_ANONYMOUS, &options)
       != AZ_OK)
   {
-      volatile int dummy643 = 1; 
+      //volatile int dummy643 = 1; 
   }
 
   uint8_t * responseBufferAddr = (uint8_t *)RESPONSE_BUFFER_MEMORY_ADDR;
@@ -312,7 +279,7 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   az_http_response http_response;
   if (az_http_response_init(&http_response, response_az_span) != AZ_OK)
   {
-    volatile int dummy645 = 1; 
+    //volatile int dummy645 = 1; 
   }
 
   az_storage_tables_upload_options uploadOptions = az_storage_tables_upload_options_default();
@@ -327,7 +294,8 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   setWiFiClient(_wifiClient);
 
   az_result const table_create_result
-      = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
+      = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), 
+      az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
 
   az_http_response_status_line statusLine;
 
@@ -337,9 +305,11 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   
  return statusLine.status_code;          
 }
+
         
 
- az_http_status_code TableClient::InsertTableEntity(const char * tableName, TableEntity pEntity, char * out_ETAG, DateTime * outResponsHeaderDate, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
+ az_http_status_code TableClient::InsertTableEntity(const char * tableName, TableEntity pEntity, char * out_ETAG, DateTime * outResponsHeaderDate, 
+ ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 {
   char * validTableName = (char *)tableName;
   if (strlen(tableName) >  MAX_TABLENAME_LENGTH)
@@ -367,16 +337,16 @@ az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);
   az_span responseTypeAzSpan = getResponseType_az_span(pResponseType);
   az_span acceptTypeAzSpan = getAcceptType_az_span(pAcceptType);
 
-// To save memory allocate buffer to address 0x20029000
-uint8_t * BufAddress = (uint8_t *)PROPERTIES_BUFFER_MEMORY_ADDR;
-az_span outPropertySpan = az_span_create(BufAddress, PROPERTIES_BUFFER_LENGTH);
-size_t outBytesWritten = 0;
+  // To save memory allocate buffer to address 0x20029000
+  uint8_t * BufAddress = (uint8_t *)PROPERTIES_BUFFER_MEMORY_ADDR;
+  az_span outPropertySpan = az_span_create(BufAddress, PROPERTIES_BUFFER_LENGTH);
+  size_t outBytesWritten = 0;
 
-GetTableXml(pEntity.Properties, pEntity.PropertyCount, outPropertySpan, &outBytesWritten);
+  GetTableXml(pEntity.Properties, pEntity.PropertyCount, outPropertySpan, &outBytesWritten);
    
-char * _properties = (char *)az_span_ptr(outPropertySpan);
+  char * _properties = (char *)az_span_ptr(outPropertySpan);
 
-const char * HttpVerb = "POST";
+  const char * HttpVerb = "POST";
    
   const char * PROGMEM li1 = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>";
   const char * PROGMEM li2 = "<entry xmlns:d=\"http://schemas.microsoft.com/ado/2007/08/dataservices\"  ";
@@ -447,8 +417,8 @@ const char * HttpVerb = "POST";
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li20));
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li21));
     
-//remainder = az_span_copy_u8(remainder, 0);
-az_span_copy_u8(remainder, 0);
+  //remainder = az_span_copy_u8(remainder, 0);
+  az_span_copy_u8(remainder, 0);
   
   // This is how concatenation of the strings was done before
   // It made the application crash in building sha512 hash
@@ -485,7 +455,7 @@ az_span_copy_u8(remainder, 0);
       != AZ_OK)
   {
       // possible breakpoint, if some something went wrong
-      volatile int dummy643 = 1;    
+      //volatile int dummy643 = 1;    
   }
   
   // To save memory set buffer address to 0x2002A000
@@ -496,7 +466,7 @@ az_span_copy_u8(remainder, 0);
   az_http_response http_response;
   if (az_result_failed(az_http_response_init(&http_response, response_az_span)))
   {
-     volatile int dummy644 = 1;
+     //volatile int dummy644 = 1;
   }
    
   az_storage_tables_upload_options uploadOptions = az_storage_tables_upload_options_default();
@@ -547,6 +517,7 @@ az_span_copy_u8(remainder, 0);
     
     return statusLine.status_code; 
 }
+
 
 DateTime GetDateTimeFromDateHeader(az_span x_ms_time)
 {

@@ -332,12 +332,14 @@ AZ_NODISCARD int64_t az_platform_clock_msec()
 
 }
 
+/*
 //void az_platform_sleep_msec(int32_t milliseconds) { (void)milliseconds; }
 // For Arduino (Wio Terminal):
 void az_platform_sleep_msec(int32_t milliseconds) 
 { 
   delay(milliseconds); 
 }
+*/
 
 void setHttpClient(HTTPClient * httpClient)
 {

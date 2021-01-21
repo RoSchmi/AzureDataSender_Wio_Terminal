@@ -32,6 +32,11 @@ static AZ_NODISCARD bool _az_is_http_whitespace(uint8_t c)
 static AZ_NODISCARD az_result _az_get_digit(az_span* ref_span, uint8_t* save_here)
 {
 
+  if (az_span_size(*ref_span) == 0)
+  {
+    return AZ_ERROR_HTTP_CORRUPT_RESPONSE_HEADER;
+  }
+
   uint8_t c_ptr = az_span_ptr(*ref_span)[0];
   if (!isdigit(c_ptr))
   {
@@ -156,6 +161,12 @@ AZ_NODISCARD az_result az_http_response_get_next_header(
     {
       return AZ_ERROR_HTTP_INVALID_STATE;
     }
+  }
+
+  if (az_span_size(ref_response->_internal.parser.remaining) == 0)
+  {
+    // avoid reading address if span is size 0
+    return AZ_ERROR_HTTP_CORRUPT_RESPONSE_HEADER;
   }
 
   // check if we are at the end of all headers to change state to Body.
@@ -292,7 +303,7 @@ AZ_NODISCARD az_result az_http_response_get_body(az_http_response* ref_response,
     {
       // Parse and ignore all remaining headers
       for (az_span n = { 0 }, v = { 0 };
-           az_http_response_get_next_header(ref_response, &n, &v) == AZ_OK;)
+           az_result_succeeded(az_http_response_get_next_header(ref_response, &n, &v));)
       {
         // ignoring header
       }
@@ -329,7 +340,7 @@ AZ_NODISCARD az_result az_http_response_append(az_http_response* ref_response, a
   int32_t write_size = az_span_size(source);
   _az_RETURN_IF_NOT_ENOUGH_SIZE(remaining, write_size);
 
-  remaining = az_span_copy(remaining, source);
+  az_span_copy(remaining, source);
   ref_response->_internal.written += write_size;
 
   return AZ_OK;
