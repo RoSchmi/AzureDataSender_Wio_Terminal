@@ -63,7 +63,7 @@
 //#include <azure/az_iot.h>
 
 
-#include <azure/core/az_platform.h>
+//#include <azure/core/az_platform.h>
 
 //#include <platform.h>
 
@@ -130,7 +130,7 @@
 #include <azure/iot/az_iot_common.h>
 //#include <iot/az_iot_common.h>
 
-#include <azure/core/az_platform.h>
+//#include <azure/core/az_platform.h>
 //#include <core/az_platform.h>
 
 #include <azure/core/internal/az_retry_internal.h>

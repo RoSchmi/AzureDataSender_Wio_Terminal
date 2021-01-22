@@ -320,6 +320,7 @@ volatile size_t headerSize = strlen(theHeader_str);
 
 // AZ_NODISCARD int64_t az_platform_clock_msec() { return 0; }
 
+/*
 // For Arduino (Wio Terminal)
 // this defines clockCyclesPerMicrosecond if its not already defined
 AZ_NODISCARD int64_t az_platform_clock_msec() 
@@ -331,15 +332,34 @@ AZ_NODISCARD int64_t az_platform_clock_msec()
    return (int64_t)((int64_t)clockCyclesPerMicrosecond() * 1000L); 
 
 }
-
-/*
-//void az_platform_sleep_msec(int32_t milliseconds) { (void)milliseconds; }
-// For Arduino (Wio Terminal):
-void az_platform_sleep_msec(int32_t milliseconds) 
-{ 
-  delay(milliseconds); 
-}
 */
+
+AZ_NODISCARD az_result az_platform_clock_msec(int64_t* out_clock_msec)
+{
+  
+  int64_t clPerMico = clockCyclesPerMicrosecond() * 1000;
+  out_clock_msec = &clPerMico;
+  return AZ_OK;
+} 
+
+
+
+
+
+//void az_platform_sleep_msec(int32_t milliseconds) { (void)milliseconds; }
+
+
+// For Arduino (Wio Terminal):
+AZ_NODISCARD az_result az_platform_sleep_msec(int32_t milliseconds) 
+{ 
+  delay(milliseconds);
+  return AZ_OK;
+}
+
+
+
+
+
 
 void setHttpClient(HTTPClient * httpClient)
 {

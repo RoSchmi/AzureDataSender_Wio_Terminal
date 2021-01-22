@@ -98,6 +98,9 @@ AZ_NODISCARD az_result az_storage_tables_client_init(
     void* credential,
     az_storage_tables_client_options const* options);
 
+
+ 
+
 /**
  * @brief Allows customization of the upload operation.
  */
@@ -125,6 +128,11 @@ typedef struct
  * function and then overriding that specific option.
  */
 AZ_NODISCARD az_storage_tables_client_options az_storage_tables_client_options_default();
+
+  
+
+
+
 
 /**
  * @brief Gets the default tables upload options.

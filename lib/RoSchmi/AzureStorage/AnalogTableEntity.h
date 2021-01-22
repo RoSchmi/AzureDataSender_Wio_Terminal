@@ -1,5 +1,5 @@
 #include <azure/core/az_span.h>
-//#include <azure/core/az_span_internal.h>
+#include <azure/core/internal/az_config_internal.h>
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
 

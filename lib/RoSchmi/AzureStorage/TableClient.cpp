@@ -14,6 +14,7 @@
 #include <AzureStorage/TableEntity.h>
 
 #include <azure/core/az_span.h>
+#include <azure/core/internal/az_http_internal.h>
 
 WiFiClient * _wifiClient;
 
@@ -56,8 +57,10 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
         // create Md5Hash           
         const size_t Md5HashStrLenght = 16 + 1;
         char md5HashStr[Md5HashStrLenght] {0};
-        int create_Md5_result = createMd5Hash(md5HashStr, Md5HashStrLenght, content);
-                
+        // RoSchmi
+        //int create_Md5_result = createMd5Hash(md5HashStr, Md5HashStrLenght, content);
+       createMd5Hash(md5HashStr, Md5HashStrLenght, content);    
+
         // Convert to hex-string
         stringToHexString(pMD5HashHex, md5HashStr, (const char *)"");
         String theString = pMD5HashHex;   
@@ -96,7 +99,7 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
              
     const size_t sha256HashBufferLength = 32 + 1;
     char sha256HashStr[sha256HashBufferLength] {0};
-    int create_SHA256_result = createSHA256Hash(sha256HashStr, sha256HashBufferLength, toSign, strlen(toSign), base64DecOut, decodedKeyLen); 
+    createSHA256Hash(sha256HashStr, sha256HashBufferLength, toSign, strlen(toSign), base64DecOut, decodedKeyLen); 
     
 
     // 3) Base-64 encode the SHA-265 encoded canonical resorce
@@ -194,15 +197,15 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   
   // Fills memory from 0x20029200 -  with pattern AA55
   // So you can see at breakpoints how much of heap was used
-  
+  /*
   uint32_t * ptr_one;
-  uint32_t * last_ptr_one;
   ptr_one = (uint32_t *)0x20029200;
   while (ptr_one < (uint32_t *)0x20029580)
   {
     *ptr_one = (uint32_t)0xAA55AA55;
      ptr_one++;
   }
+  */
   
   // Create the body of the request
    // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200
@@ -283,17 +286,25 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   }
 
   az_storage_tables_upload_options uploadOptions = az_storage_tables_upload_options_default();
-  
+
   uploadOptions._internal.acceptType = acceptTypeAzSpan;
   uploadOptions._internal.contentType = contentTypeAzSpan;
   uploadOptions._internal.perferType = responseTypeAzSpan;
+
+// Didn't get this working
+/*
+  _az_http_policy_apiversion_options apiOptions = az_http_policy_apiversion_options_default();
+  apiOptions._internal.name = AZ_SPAN_LITERAL_FROM_STR("");
+*/
+  
   
   
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
   setWiFiClient(_wifiClient);
 
-  az_result const table_create_result
+  //az_result const table_create_result
+  az_result table_create_result
       = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), 
       az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
 
@@ -373,15 +384,15 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 
   // Fills memory from 0x20029200 -  with pattern AA55
   // So you can see at breakpoints how much of heap was used
-  
+  /*
   uint32_t * ptr_one;
-  uint32_t * last_ptr_one;
   ptr_one = (uint32_t *)0x20029200;
   while (ptr_one < (uint32_t *)0x20029580)
   {
     *ptr_one = (uint32_t)0xAA55AA55;
      ptr_one++;
   }
+  */
   
    // Create the body of the request
    // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200

@@ -73,15 +73,20 @@ AZ_NODISCARD AZ_INLINE _az_http_policy_telemetry_options _az_http_policy_telemet
   return (_az_http_policy_telemetry_options){ .os = AZ_SPAN_FROM_STR("Unknown OS") };
 }
 
+// RoSchmi
+// Must be commented out. Otherwise it doesn't compile (why ?????)
+/*
 AZ_NODISCARD AZ_INLINE _az_http_policy_apiversion_options
 _az_http_policy_apiversion_options_default()
 {
   return (_az_http_policy_apiversion_options){
-    ._internal = { .option_location = _az_http_policy_apiversion_option_location_header,
-                   .name = AZ_SPAN_EMPTY,
+    ._internal = { .name = AZ_SPAN_EMPTY,
+                  .option_location = _az_http_policy_apiversion_option_location_header,
                    .version = AZ_SPAN_EMPTY }
   };
 }
+*/
+
 
 /**
  * @brief Initialize az_http_policy_retry_options with default values

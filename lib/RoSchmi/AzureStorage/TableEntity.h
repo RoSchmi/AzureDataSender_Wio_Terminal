@@ -9,7 +9,7 @@
 //az_span   RowKey;
 //az_span   ETag;
 //DateTime TimeStamp;
-//static bool DisablePropertyResolverCache;
+static bool DisablePropertyResolverCache;
 
 //az_span JsonString = az_span_create_from_str((char *)"");
 
