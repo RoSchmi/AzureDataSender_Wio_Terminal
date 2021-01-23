@@ -57,8 +57,7 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
         // create Md5Hash           
         const size_t Md5HashStrLenght = 16 + 1;
         char md5HashStr[Md5HashStrLenght] {0};
-        // RoSchmi
-        //int create_Md5_result = createMd5Hash(md5HashStr, Md5HashStrLenght, content);
+        
        createMd5Hash(md5HashStr, Md5HashStrLenght, content);    
 
         // Convert to hex-string
@@ -291,13 +290,12 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   uploadOptions._internal.contentType = contentTypeAzSpan;
   uploadOptions._internal.perferType = responseTypeAzSpan;
 
-// Didn't get this working
-/*
-  _az_http_policy_apiversion_options apiOptions = az_http_policy_apiversion_options_default();
+
+  _az_http_policy_apiversion_options apiOptions = _az_http_policy_apiversion_options_default();
   apiOptions._internal.name = AZ_SPAN_LITERAL_FROM_STR("");
-*/
-  
-  
+  apiOptions._internal.version = AZ_SPAN_LITERAL_FROM_STR("");
+  apiOptions._internal.option_location = _az_http_policy_apiversion_option_location_header;
+
   
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
@@ -312,12 +310,9 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 
   az_result result = az_http_response_get_status_line(&http_response, &statusLine);
 
-  
-  
  return statusLine.status_code;          
 }
 
-        
 
  az_http_status_code TableClient::InsertTableEntity(const char * tableName, TableEntity pEntity, char * out_ETAG, DateTime * outResponsHeaderDate, 
  ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
@@ -593,8 +588,6 @@ DateTime GetDateTimeFromDateHeader(az_span x_ms_time)
   return DateTime();
   }
 }
-
-
 
 void appendCharArrayToSpan(az_span targetSpan, const size_t maxTargetLength, const size_t startIndex, size_t *outEndIndex, const char * stringToAppend)
 {

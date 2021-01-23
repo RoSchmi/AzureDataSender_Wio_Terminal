@@ -28,8 +28,6 @@
 
 #include <azure/core/_az_cfg_prefix.h>
 
-//#include <HTTPClient.h>
-
 #define ROSCHMI_AZ_HTTP_REQUEST_URL_BUFFER_SIZE 100
 
 
@@ -74,9 +72,6 @@ typedef struct
   } _internal;
 } az_storage_tables_client;
 
-// RoSchmi
-//const char *_caCert;
-//HTTPClient * _httpPtr;
 
 /**
  * @brief Initialize a client with default options.
@@ -98,9 +93,6 @@ AZ_NODISCARD az_result az_storage_tables_client_init(
     void* credential,
     az_storage_tables_client_options const* options);
 
-
- 
-
 /**
  * @brief Allows customization of the upload operation.
  */
@@ -119,7 +111,7 @@ typedef struct
 } az_storage_tables_upload_options;
 
 /**
- * @brief Gets the default blob storage options.
+ * @brief Gets the default table storage options.
  *
  * @details Call this to obtain an initialized #az_storage_tables_client_options structure that
  * can be modified and passed to #az_storage_tables_client_init().
@@ -128,11 +120,6 @@ typedef struct
  * function and then overriding that specific option.
  */
 AZ_NODISCARD az_storage_tables_client_options az_storage_tables_client_options_default();
-
-  
-
-
-
 
 /**
  * @brief Gets the default tables upload options.

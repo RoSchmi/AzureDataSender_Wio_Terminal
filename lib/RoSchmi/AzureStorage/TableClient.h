@@ -7,10 +7,7 @@
 #include "mbedtls/md5.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
-
 #include <azure/core/az_http.h>
-//#include <core/az_http.h>
-
 #include <Time/SysTime.h>
 #include <AzureStorage/CloudStorageAccount.h>
 #include <AzureStorage/TableEntity.h>
@@ -49,11 +46,9 @@ class TableClient
 {
 public:
     TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient);
-    //TableClient(CloudStorageAccount *account, const char * caCert, HTTPClient *httpClient, WiFiClientSecure *wifiClient);
+   
     ~TableClient();
     
-    //void send();
-
     az_http_status_code CreateTable(const char * tableName, ContType pContentType = ContType::contApplicationIatomIxml, AcceptType pAcceptType = AcceptType::acceptApplicationIjson, ResponseType pResponseType = ResponseType::returnContent, bool useSharedKeyLight = false);
     az_http_status_code InsertTableEntity(const char * tableName, TableEntity pEntity, char* out_ETAG, DateTime * outResonseHeaderDate, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite = false);   
     void CreateTableAuthorizationHeader(const char * content, const char * canonicalResource, const char * ptimeStamp, const char * pHttpVerb, az_span pConentType, char * pMd5Hash, char pAutorizationHeader[], bool useSharedKeyLite = false);
