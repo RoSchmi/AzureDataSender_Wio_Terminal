@@ -89,7 +89,7 @@ void Rs_time_helpers::ruleSTD(const char* tzName, int8_t week, int8_t wday, int8
   dstEnd.hour = hour;
   dstEnd.tzOffset = tzOffset;
   }
-    
+  
 const char* Rs_time_helpers::ruleSTD() {
   if(dstZone) {
     return ctime(&stdTime);

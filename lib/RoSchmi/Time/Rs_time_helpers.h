@@ -152,8 +152,9 @@ class Rs_time_helpers {
      */
     void offset(int16_t days, int8_t hours, int8_t minutes, int8_t seconds);
 
-char daysOfTheWeek[7][4] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-//char monthsOfTheYear[12][5] = {"Jan", "Feb"}
+char PROGMEM daysOfTheWeek[7][4] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+char PROGMEM monthsOfTheYear[12][5] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+char PROGMEM weekOfMonth[5][8] {"Last", "First", "Second", "Third", "Fourth"}; 
 
 void dateTimeToStringFormat_01(char * outBuffer50Bytes, const char *format);
 

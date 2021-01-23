@@ -23,14 +23,21 @@
 // Azure Storage Account have to be set in the file config_secret.h 
 
 #define SENDINTERVAL_MINUTES 1.0              // Sendinterval in minutes                                       
-                                                // is limited to be not below 1 second
+                                              // is limited to be not below 1 second
+
 // Names for Tables in Azure Account, please obey rules for Azure Tablenames (e.g. no underscore allowed)
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
 // max length in this App is 45
 
 #define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values max length = 45
 
-#define ON_OFF_TABLENAME_01 "Button1"        // Name of the 1. On/Off Table  max length = 45
+#define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Screen (consider the length)
+#define ANALOG_SENSOR_02_LABEL "Humidity"       
+#define ANALOG_SENSOR_03_LABEL "Light"
+#define ANALOG_SENSOR_04_LABEL "Movement"
+
+
+#define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table  max length = 45                  
@@ -54,9 +61,25 @@
 #define REBOOT_AFTER_FAILED_UPLOAD 0           // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
                                                // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
-#define TIMEZONE 60              // TimeZone time difference to UTC in minutes
-#define DSTOFFSET 60             // DaylightSaving Time offset in minutes
-                                 // (Begin and end have to be defined in the code)
+// Set timezoneoffset and daylightsavingtime settings according to your zone
+// https://en.wikipedia.org/wiki/Daylight_saving_time_by_country
+// https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations
+
+#define TIMEZONE 60                 // TimeZone time difference to UTC in minutes
+#define DSTOFFSET 60                // DaylightSaving Time offset in minutes
+
+#define  DST_ON_NAME                "CEST"
+#define  DST_START_MONTH            "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
+#define  DST_START_WEEKDAY          "Sun"    // Sun, Mon, Tue, Wed, Thu, Fri, Sat
+#define  DST_START_WEEK_OF_MONTH    "Last"   // Last, First, Second, Third, Fourth
+#define  DST_START_HOUR              2        // 0 - 23
+
+#define  DST_OFF_NAME               "CET"
+#define  DST_STOP_MONTH             "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
+#define  DST_STOP_WEEKDAY           "Sun"    // Sun, Tue, Wed, Thu, Fri, Sat
+#define  DST_STOP_WEEK_OF_MONTH     "Last"   // Last, First, Second, Third, Fourth
+#define  DST_STOP_HOUR               2       // 0 - 23
+       
 
 #define TRANSPORT_PROTOCOL 1     // 0 = http, 1 = https
                                  

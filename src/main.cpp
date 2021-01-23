@@ -10,12 +10,11 @@
 
   // The used Azure-sdk-for-c libraries were Vers. 1.1.0-beta.3
   // https://github.com/Azure/azure-sdk-for-c/releases/tag/1.1.0-beta.3
+  // In Vers. 1.1.0-beta.3 was a difficulte to find bug in the file az_http_internal.h
+  // which is fixed in the repo of this App
 
-  //For a BLOB the Basis-URI consists of the name of the account, the namen of the Container and the namen of the BLOB:
-  //https://myaccount.blob.core.windows.net/mycontainer/myblob
-  //https://docs.microsoft.com/de-de/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata
-
-// Memory usage
+  
+// Memory usage Wio Terminal
 // 20000000 	First 64 K Ram Block
 // 2000FFFF
 // 20010000	  Second 64 K Ram Block
@@ -26,11 +25,11 @@
 // Heap goes upwards from about 2000A4A0
 // Stack goes downwards from 2000FFFF
 
-// The following memory areas are extraordinarily used as buffers from this program
-// 20029000	300 Bytes PROPERTIES_BUFFER_MEMORY_ADDR
-// 20029200          900 Bytes Request Buffer
-// 2002A000	2000 Bytes RESPONSE_BUFFER_MEMORY_ADDR
-// 2002FFFF           Ende des Ram
+// To save available Ram the following memory areas are 'extraordinarily' used as buffers from this program
+// 20029000	    300 Bytes PROPERTIES_BUFFER_MEMORY_ADDR
+// 20029200     900 Bytes Request Buffer
+// 2002A000	    2000 Bytes RESPONSE_BUFFER_MEMORY_ADDR
+// 2002FFFF     End of Ram
 
 
 #include <Arduino.h>
@@ -218,6 +217,9 @@ bool sendResultState = true;
 
 uint32_t failedUploadCounter = 0;
 
+const int timeZoneOffset = (int)TIMEZONE;
+const int dstOffset = (int)DSTOFFSET;
+
 unsigned long utcTime;
 DateTime dateTimeUTCNow;
 volatile uint32_t dateTimeUtcOldSeconds;
@@ -302,7 +304,9 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_
 void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
 void showDisplayFrame();
 void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool sendResultState, uint32_t tryUpLoadCtr);
-
+int getDayNum(const char * day);
+int getMonNum(const char * month);
+int getWeekOfMonthNum(const char * weekOfMonth);
 
 // Seems not to work
 void myCrashHandler(SAMCrashReport &report)
@@ -377,26 +381,65 @@ void setup()
   // Seeed_Arduino_rpcUnified/src/rpc_unified_log.h:
   // ( https://forum.seeedstudio.com/t/rpcwifi-library-only-working-intermittently/255660/5 )
 
-  delay(1000);
+  //delay(1000);
+
   char buf[100];
   
   sprintf(buf, "RTL8720 Firmware: %s", rpc_system_version());
   lcd_log_line(buf);
-  lcd_log_line((char *)"Initial WiFi-Status:");
-  lcd_log_line(itoa((int)WiFi.status(), buf, 10));
-    
-  delay(500);
+  sprintf(buf, "Initial WiFi-Status: %i", (int)WiFi.status());
+  lcd_log_line(buf);
   
+  // Setting Daylightsavingtime. Enter values for your zone in file inc/config.h
+  // Program aborts in some cases of invalid values
+  bool firstTimeZoneDef_is_Valid = true;
+  int dstWeekday = getDayNum(DST_START_WEEKDAY);
+  int dstMonth = getMonNum(DST_START_MONTH);
+  int dstWeekOfMonth = getWeekOfMonthNum(DST_START_WEEK_OF_MONTH);
+
+  if (!(dstWeekday == -1 || dstMonth == - 1 || dstWeekOfMonth == -1 || DST_START_HOUR > 23 ? true : DST_START_HOUR < 0 ? true : false))
+  {
+     time_helpers.ruleDST(DST_ON_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_START_HOUR, TIMEZONE + DSTOFFSET);
+     //time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, TIMEZONE + DSTOFFSET); // e.g last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset) 
+  }
+  else
+  {
+    firstTimeZoneDef_is_Valid = false;
+  }
+
+  dstWeekday = getDayNum(DST_STOP_WEEKDAY);
+  dstMonth = getMonNum(DST_STOP_MONTH);
+  dstWeekOfMonth = getWeekOfMonthNum(DST_STOP_WEEK_OF_MONTH);
+  if (!(dstWeekday == -1 || dstMonth == - 1 || dstWeekOfMonth == -1 || DST_STOP_HOUR > 23 ? true : DST_STOP_HOUR < 0 ? true : false || !firstTimeZoneDef_is_Valid))
+  {
+    time_helpers.ruleSTD(DST_OFF_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_STOP_HOUR, TIMEZONE);
+    //time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, TIMEZONE); // e.g. last sunday in october 3:00, timezone +60min (+1 GMT)
+    sprintf(buf, "Selected Timezone: %s", DST_OFF_NAME);
+     lcd_log_line(buf);
+  }
+  else
+  {
+    lcd_log_line((char *)"Invalid Timezone entries, stop");
+    while (true)
+    {
+      delay(1000);
+    }
+  }
+
+  delay(500);
+
   //Set WiFi to station mode and disconnect from an AP if it was previously connected
   WiFi.mode(WIFI_STA);
-  lcd_log_line((char *)"First disconnecting, Status:");
+  lcd_log_line((char *)"First disconnecting.");
   while (WiFi.status() != WL_DISCONNECTED)
   {
     WiFi.disconnect();
     delay(200); 
   }
-
-  lcd_log_line(itoa((int)WiFi.status(), buf, 10));
+  
+  sprintf(buf, "Status: %i", (int)WiFi.status());
+  lcd_log_line(buf);
+  
   delay(500);
 
   sprintf(buf, "Connecting to SSID: %s", ssid);
@@ -404,10 +447,10 @@ void setup()
 
   if (!ssid || *ssid == 0x00 || strlen(ssid) > 31)
   {
+    lcd_log_line((char *)"Invalid: SSID or PWD, Stop");
     // Stay in endless loop
       while (true)
-      {
-        lcd_log_line((char *)"Invalid: SSID or PWD");
+      {         
         delay(1000);
       }
   }
@@ -476,10 +519,10 @@ if (!WiFi.enableSTA(true))
   IPAddress subNetMask =  WiFi.subnetMask();
   IPAddress dnsServerIp = WiFi.dnsIP();
    
-// Wait for 2000 ms
+// Wait for 1500 ms
   for (int i = 0; i < 3; i++)
   {
-    delay(1000);
+    delay(500);
     #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
     #endif
@@ -504,16 +547,6 @@ if (!WiFi.enableSTA(true))
   
   analogSensorReadInterval =  ANALOG_SENSOR_READ_INTERVAL_MILLIS < 10 ? 10 : ANALOG_SENSOR_READ_INTERVAL_MILLIS > 5000 ? 5000: ANALOG_SENSOR_READ_INTERVAL_MILLIS;                                                                                     // not below 5 min           
      
-  //lcd_log_line((char *)ntp.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
-  //lcd_log_line((char *)ntp.formattedTime("%A %T"));        // Www hh:mm:ss
-  
-  /*
-  DateTime now = DateTime(F(__DATE__), F(__TIME__));
-  dateTimeUTCNow = DateTime((uint16_t) now.year(), (uint8_t)now.month(), (uint8_t)now.day(),
-                (uint8_t)now.hour(), (uint8_t)now.minute(), (uint8_t)now.second());
-  */
-
-  //DateTime now = DateTime(F((char *)ntp.formattedTime("%d. %B %Y")), F((char *)ntp.formattedTime("%A %T")));
   
   #if WORK_WITH_WATCHDOG == 1
     SAMCrashMonitor::iAmAlive();
@@ -548,12 +581,6 @@ if (!WiFi.enableSTA(true))
   }
   
   dateTimeUTCNow = sysTime.getTime();
-  
-
-  // Set Daylightsavingtime for central europe
-  // The following two lines must be adapted to your DayLightSavings zone
-  time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, TIMEZONE + DSTOFFSET); // last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset)
-  time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, TIMEZONE); // last sunday in october 3:00, timezone +60min (+1 GMT)
   time_helpers.update(dateTimeUTCNow);
   time_helpers.begin();
 
@@ -621,7 +648,10 @@ void showDisplayFrame()
     textFont = FSSB9;
     textColor = TFT_BLACK;
     current_text_line = 1;
-    const char * PROGMEM line_1 = (char *)"    Temperature        Humidity";
+    char line_1[35]{0};
+    sprintf(line_1, "    %s     %s ", ANALOG_SENSOR_01_LABEL, ANALOG_SENSOR_02_LABEL);
+   
+    //const char * PROGMEM line_1 = (char *)"    Temperature        Humidity";
     lcd_log_line((char *)line_1);
     current_text_line = 6;
     const char * PROGMEM line_2 = (char *)"           Light             Movement";
@@ -748,7 +778,7 @@ void loop()
 { 
   if (loopCounter++ % 10000 == 0)   // Make decisions to send data every 10000 th round and toggle Led to signal that App is running
   {
-    volatile uint32_t currentMillis = millis();
+    uint32_t currentMillis = millis();
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
 
@@ -778,7 +808,7 @@ void loop()
             
             if (!showGraphScreen)
             { 
-              char buffer[] = "Utc: YYYY-MM-DD hh:mm:ss";           
+              char buffer[] = "NTP-Utc: YYYY-MM-DD hh:mm:ss";           
               dateTimeUTCNow.toString(buffer);
               lcd_log_line((char *)buffer);
             } 
@@ -790,29 +820,29 @@ void loop()
     else            // it was not NTP Update, proceed with send to analog table or On/Off-table
     {
       dateTimeUTCNow = sysTime.getTime();
-      time_helpers.update(dateTimeUTCNow);
-
+      
       // Get offset in minutes between UTC and local time with consideration of DST
       time_helpers.update(dateTimeUTCNow);
       int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
       DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
       // In the last 15 sec of each day we set a pulse to Off-State when we had On-State before
       bool isLast15SecondsOfDay = (localTime.hour() == 23 && localTime.minute() == 59 &&  localTime.second() > 45) ? true : false;
-      //bool isLast15SecondsOfDay = (localTime.second() > 45) ? true : false;
-
+      
+      // Get readings from 4 differend analog sensors and store the values in a container
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       
-      // Check if automatic OnOfSwitcher has toggled
+      // Check if automatic OnOfSwitcher has toggled (used to simulate on/off changes)
+      // and accordingly change the state of one representation (here index 2) in onOffDataContainer
       if (onOffSwitcherWio.hasToggled(dateTimeUTCNow))
-          {
-            bool state = onOffSwitcherWio.GetState();
-            time_helpers.update(dateTimeUTCNow);
-            int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
-            onOffDataContainer.SetNewOnOffValue(2, state, dateTimeUTCNow, timeZoneOffsetUTC);
-          }
+      {
+        bool state = onOffSwitcherWio.GetState();
+        time_helpers.update(dateTimeUTCNow);
+        int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+        onOffDataContainer.SetNewOnOffValue(2, state, dateTimeUTCNow, timeZoneOffsetUTC);
+      }
       
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
       if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent() || isLast15SecondsOfDay)
@@ -827,7 +857,7 @@ void loop()
         size_t partitionKeyLength = 0;
         az_span partitionKey = AZ_SPAN_FROM_BUFFER(partKeySpan);
         
-        // Create az_span to hold partitionkey
+        // Create az_span to hold rowkey
         char rowKeySpan[25] {0};
         size_t rowKeyLength = 0;
         az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
@@ -836,8 +866,8 @@ void loop()
         {
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow);
-     
-          createSampleTime(sampleValueSet.LastSendTime, timeZoneOffsetUTC, (char *)sampleTime);
+                  
+          createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
 
           // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
           String augmentedAnalogTableName = analogTableName; 
@@ -857,7 +887,7 @@ void loop()
                  else
                  {
                     // Reset board if not successful
-                    NVIC_SystemReset();     // Makes Code 64
+                    NVIC_SystemReset();     // ResetCause Code 64
                  }
               }
 
@@ -1038,6 +1068,43 @@ void loop()
   loopCounter++;
 }
 
+int getWeekOfMonthNum(const char * weekOfMonth)
+{
+  for (int i = 0; i < 5; i++)
+  {  
+    if (strcmp((char *)time_helpers.weekOfMonth[i], weekOfMonth) == 0)
+    {
+      return i;
+    }   
+  }
+  return -1;
+}
+
+int getMonNum(const char * month)
+{
+  for (int i = 0; i < 12; i++)
+  {  
+    if (strcmp((char *)time_helpers.monthsOfTheYear[i], month) == 0)
+    {
+      return i;
+    }   
+  }
+  return -1;
+}
+
+
+int getDayNum(const char * day)
+{
+  for (int i = 0; i < 7; i++)
+  {  
+    if (strcmp((char *)time_helpers.daysOfTheWeek[i], day) == 0)
+    {
+      return i;
+    }   
+  }
+  return -1;
+}
+
 
 
 
@@ -1132,6 +1199,9 @@ unsigned long sendNTPpacket(const char* address) {
     udp.write(packetBuffer, NTP_PACKET_SIZE);
     udp.endPacket();
 }
+
+
+
 
 String floToStr(float value)
 {
