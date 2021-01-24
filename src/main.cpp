@@ -162,6 +162,21 @@ const bool augmentTableNameWithYear = true;
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
 int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
 
+// Array to retrieve spaces with different length
+char PROGMEM spacesArray[13][13] = {  "", 
+                                      " ", 
+                                      "  ", 
+                                      "   ", 
+                                      "    ", 
+                                      "     ", 
+                                      "      ", 
+                                      "       ", 
+                                      "        ", 
+                                      "         ", 
+                                      "          ", 
+                                      "           ",  
+                                      "            "};
+
 DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
 OnOffDataContainerWio onOffDataContainer;
@@ -647,18 +662,28 @@ void showDisplayFrame()
     backColor = TFT_LIGHTGREY;
     textFont = FSSB9;
     textColor = TFT_BLACK;
+    
+    char line[35]{0};
+    char label_left[15] {0};
+    strncpy(label_left, ANALOG_SENSOR_01_LABEL, 13);
+    char label_right[15] {0};
+    strncpy(label_right, ANALOG_SENSOR_02_LABEL, 13);
+    int32_t gapLength_1 = (13 - strlen(label_left)) / 2;
+    int32_t gapLength_2 = (13 - strlen(label_right)) / 2; 
+    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
     current_text_line = 1;
-    char line_1[35]{0};
-    sprintf(line_1, "    %s     %s ", ANALOG_SENSOR_01_LABEL, ANALOG_SENSOR_02_LABEL);
-   
-    //const char * PROGMEM line_1 = (char *)"    Temperature        Humidity";
-    lcd_log_line((char *)line_1);
+    lcd_log_line((char *)line);
+
+    strncpy(label_left, ANALOG_SENSOR_03_LABEL, 13); 
+    strncpy(label_right, ANALOG_SENSOR_04_LABEL, 13);
+    gapLength_1 = (13 - strlen(label_left)) / 2; 
+    gapLength_2 = (13 - strlen(label_right)) / 2;
+    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
     current_text_line = 6;
-    const char * PROGMEM line_2 = (char *)"           Light             Movement";
-    lcd_log_line((char *)line_2);
-    current_text_line = 10;
-    const char * PROGMEM line_3 = (char *)"";
-    lcd_log_line((char *)line_3);
+    lcd_log_line((char *)line);
+    current_text_line = 10;   
+    line[0] = '\0';   
+    lcd_log_line((char *)line);
   }
 }
 
@@ -679,8 +704,7 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     an_3 = constrain(an_3, -999.9, 999.9);
     an_4 = constrain(an_4, -999.9, 999.9);
 
-    char preGapArray[4][5] = { "", " ", "  ", "   "};
-
+    
     char lineBuf[40] {0};
 
     char valueStringArray[4][7] = {{0}, {0}, {0}, {0}};
@@ -712,7 +736,7 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     for (int i = 0; i <4; i++)
     {
       spr.fillSprite(TFT_DARKGREEN);
-      sprintf(lineBuf, "%s%s", preGapArray[charCounts[i]], valueStringArray[i]);
+      sprintf(lineBuf, "%s%s", spacesArray[charCounts[i]], valueStringArray[i]);
       spr.drawString(lineBuf, 0, 0);
       switch (i)
       {
@@ -1092,7 +1116,6 @@ int getMonNum(const char * month)
   return -1;
 }
 
-
 int getDayNum(const char * day)
 {
   for (int i = 0; i < 7; i++)
@@ -1104,9 +1127,6 @@ int getDayNum(const char * day)
   }
   return -1;
 }
-
-
-
 
 unsigned long getNTPtime() 
 {

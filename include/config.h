@@ -31,7 +31,7 @@
 
 #define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values max length = 45
 
-#define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Screen (consider the length)
+#define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
 #define ANALOG_SENSOR_03_LABEL "Light"
 #define ANALOG_SENSOR_04_LABEL "Movement"
