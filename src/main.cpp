@@ -928,16 +928,17 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
 
     char lineBuf[40] {0};
 
-    char valueStringArray[4][7] = {{0}, {0}, {0}, {0}};
+    char valueStringArray[4][8] = {{0}, {0}, {0}, {0}};
 
-    sprintf(valueStringArray[0], "%.1f", an_1);
-    sprintf(valueStringArray[1], "%.1f", an_2);
-    sprintf(valueStringArray[2], "%.1f", an_3);
-    sprintf(valueStringArray[3], "%.1f", an_4);
+    sprintf(valueStringArray[0], "%.1f", SENSOR_1_FAHRENHEIT == 1 ?  dht.convertCtoF(an_1) :  an_1 );
+    sprintf(valueStringArray[1], "%.1f", SENSOR_2_FAHRENHEIT == 1 ?  dht.convertCtoF(an_2) :  an_2 );
+    sprintf(valueStringArray[2], "%.1f", SENSOR_3_FAHRENHEIT == 1 ?  dht.convertCtoF(an_3) :  an_3 );
+    sprintf(valueStringArray[3], "%.1f", SENSOR_4_FAHRENHEIT == 1 ?  dht.convertCtoF(an_4) :  an_4 );
 
     for (int i = 0; i < 4; i++)
     {
-        if (strcmp(valueStringArray[i], "999.9") == 0)
+        // 999.9 is invalid, 1831.8 is invalid when tempatures are expressed in Fahrenheit
+        if (strcmp(valueStringArray[i], "999.9") == 0 || strcmp(valueStringArray[i], "1831.8") == 0)
         {
             strcpy(valueStringArray[i], "--.-");
         }
@@ -953,7 +954,7 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
 
     spr.setTextColor(TFT_ORANGE);
     spr.setFreeFont(FSSBO18);
-
+    
     for (int i = 0; i <4; i++)
     {
       spr.fillSprite(TFT_DARKGREEN);
@@ -1343,11 +1344,13 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
   #else
     static WiFiClient wifi_client;
   #endif
-
+  
+  
   #if TRANSPORT_PROTOCOL == 1
     wifi_client.setCACert(myX509Certificate);
     //wifi_client.setCACert(baltimore_corrupt_root_ca);
   #endif
+  
 
   /*
   // For tests: Try second upload with corrupted certificate to provoke failure

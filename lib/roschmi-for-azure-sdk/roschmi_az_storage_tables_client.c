@@ -24,7 +24,6 @@ enum
   _az_STORAGE_HTTP_REQUEST_HEADER_BUFFER_SIZE = 14 * sizeof(_az_http_request_header),
 };
 
-  
 static az_span const AZ_STORAGE_TABLES_HEADER_ACCEPT_TYPE
     = AZ_SPAN_LITERAL_FROM_STR("Accept");  
 

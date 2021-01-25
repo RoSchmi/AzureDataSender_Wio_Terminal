@@ -57,9 +57,9 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_MILLIS 1000   // Analog sensors are read with this interval                                      
 
-#define WORK_WITH_WATCHDOG 1                  // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 1                 // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 1          // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
+#define REBOOT_AFTER_FAILED_UPLOAD 1         // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 
@@ -106,6 +106,10 @@
 #define SENSOR_3_OFFSET     0.0        // Calibration Offset to sensor No 3
 #define SENSOR_4_OFFSET     0.0        // Calibration Offset to sensor No 4
 
+# define SENSOR_1_FAHRENHEIT 0         // 1 = yes, 0 = no - Display in Fahrenheit scale
+# define SENSOR_2_FAHRENHEIT 0         // 1 = yes, 0 = no - Display in Fahrenheit scale
+# define SENSOR_3_FAHRENHEIT 0         // 1 = yes, 0 = no - Display in Fahrenheit scale
+# define SENSOR_4_FAHRENHEIT 0         // 1 = yes, 0 = no - Display in Fahrenheit scale
 
 
 const char *baltimore_root_ca =
