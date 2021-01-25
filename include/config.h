@@ -8,8 +8,7 @@
 // Please set your timezone offset (time difference from your zone 
 // to UTC time in units of minutes) and set the time difference
 // used for DaylightSaving Time in minutes
-// The begin and end of Daylightsaving time actually has to be defined
-// in the code in main.cpp
+// Define begin and end of Daylightsaving 
 //
 // Please select the transport protocol, http or https (recommended)
 // For https you must include the Root Certificate of your Azure Account
@@ -17,6 +16,7 @@
 // Select the Sendinterval in minutes
 // Select the Invalidate Interval in minutes (Sensor values not actualized
 // within this interval are considered to be invalid)
+// Define other settings according to your needs
 
 //
 // The credentials of your WiFi router and the name and key of your
@@ -31,12 +31,13 @@
 
 #define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values max length = 45
 
-#define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Screen (length max 13)
+#define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Wio Terminal screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
 #define ANALOG_SENSOR_03_LABEL "Light"
 #define ANALOG_SENSOR_04_LABEL "Movement"
 
-
+                                               // Names of tables to be created in your Azure Storage Account
+                                               // Per default the names are augmented with the actual year in this App
 #define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table  max length = 45
@@ -48,7 +49,7 @@
                                         // read within this timespan)
 
 #define NTP_UPDATE_INTERVAL_MINUTES 5   //  With this interval sytem time is updated via NTP
-                                           //  with internet time (is limited to be not below 1 min)
+                                        //  with internet time (is limited to be not below 1 min)
 
 #define UPDATE_TIME_FROM_AZURE_RESPONSE 0  // 1 = yes, 0 = no. SystemTime is updated from the Post response from Azure.
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
@@ -56,17 +57,18 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_MILLIS 1000   // Analog sensors are read with this interval                                      
 
-#define WORK_WITH_WATCHDOG 0                   // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 1                  // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 0           // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
-                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
+#define REBOOT_AFTER_FAILED_UPLOAD 1          // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
+                                              // after a failed upload, so we should reboot (as long as the bug isn't solved)   
+
 
 // Set timezoneoffset and daylightsavingtime settings according to your zone
 // https://en.wikipedia.org/wiki/Daylight_saving_time_by_country
 // https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations
 
 #define TIMEZONE 60                 // TimeZone time difference to UTC in minutes
-#define DSTOFFSET 60                // DaylightSaving Time offset in minutes
+#define DSTOFFSET 60                // Additional DaylightSaving Time offset in minutes
 
 #define  DST_ON_NAME                "CEST"
 #define  DST_START_MONTH            "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
@@ -78,10 +80,10 @@
 #define  DST_STOP_MONTH             "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
 #define  DST_STOP_WEEKDAY           "Sun"    // Sun, Tue, Wed, Thu, Fri, Sat
 #define  DST_STOP_WEEK_OF_MONTH     "Last"   // Last, First, Second, Third, Fourth
-#define  DST_STOP_HOUR               2       // 0 - 23
+#define  DST_STOP_HOUR               3       // 0 - 23
        
 
-#define TRANSPORT_PROTOCOL 1     // 0 = http, 1 = https
+#define TRANSPORT_PROTOCOL 1      // 0 = http, 1 = https
                                  
 
 #define USE_WIFI_STATIC_IP 0     // 1 = use static IpAddress, 0 = use DHCP
@@ -89,7 +91,8 @@
 
 #define MIN_DATAVALUE -40.0             // Values below are treated as invalid
 #define MAX_DATAVALUE 140.0             // Values above are treated as invalid
-#define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value
+#define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value (should be 999.9)
+                                        // Not sure if it works with other values than 999.9
 
 #define SHOW_GRAPHIC_SCREEN 1           // 1 = A graphic screen with actual values is shown
                                         // 0 = a log with actions is shown on the screen

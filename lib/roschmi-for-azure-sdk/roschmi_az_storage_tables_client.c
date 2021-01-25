@@ -12,7 +12,7 @@
 #include <azure/core/internal/az_result_internal.h>
 #include <azure/core/Internal/az_retry_internal.h>
 #include <azure/core/internal/az_span_internal.h>
-#include <AzureStorage/roschmi_az_storage_tables.h>
+#include <roschmi_az_storage_tables.h>
 
 
 #include <stddef.h>

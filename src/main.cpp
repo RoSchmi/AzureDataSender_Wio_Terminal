@@ -37,7 +37,6 @@
 #include <config_secret.h>
 
 #include <AzureStorage/CloudStorageAccount.h>
-
 #include <AzureStorage/TableClient.h>
 #include <AzureStorage/TableEntityProperty.h>
 #include <AzureStorage/TableEntity.h>
@@ -57,24 +56,6 @@
 #include "SensorData/OnOffSwitcherWio.h"
 #include "SensorData/ImuManagerWio.h"
 
-
-//#include <azure/az_core.h>
-//#include <azure/az_iot.h>
-
-
-//#include <azure/core/az_platform.h>
-
-//#include <platform.h>
-
-#include <azure/core/internal/az_config_internal.h>
-//#include <core/az_config.h>
-
-#include <azure/core/az_context.h>
-//#include <core/az_context.h>
-
-#include <azure/core/az_http.h>
-//#include <core/az_http.h>
-
 #include <az_wioterminal_roschmi.h> 
 
 #include <stdio.h>
@@ -84,7 +65,6 @@
 #include "DHT.h"
 #include"LIS3DHTR.h"
 
-
 #include "mbedtls/md.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
@@ -92,51 +72,19 @@
 #include "TFT_eSPI.h"
 #include "Free_Fonts.h" //include the header file
 
-#include <azure/core/az_json.h>
-//#include <core/az_json.h>
-
+#include <azure/core/az_platform.h>
+#include <azure/core/az_http.h>
+#include <azure/core/az_http_transport.h>
 #include <azure/core/az_result.h>
-//#include <az_result.h>
-
-
-
-
+#include <azure/core/az_config.h>
+#include <azure/core/az_context.h>
 #include <azure/core/az_span.h>
 
-
-
-#include <azure/core/az_config.h>
-//#include <core/az_config.h>
-
-
-#include <azure/core/az_http.h>
-
-
-#include <azure/core/az_context.h>
-//#include <core/az_context.h>
-
-
-#include <azure/core/az_http_transport.h>
-//#include <core/az_http_transport.h>
-
+//#include <azure/core/az_json.h>
+//#include <azure/iot/az_iot_common.h>
+//#include <azure/iot/az_iot_hub_client.h>
 
 //#include <azure/core/_az_cfg_prefix.h>   // may not be included
-
-#include <azure/iot/az_iot_hub_client.h>
-//#include <iot/az_iot_hub_client.h>
-
-
-#include <azure/iot/az_iot_common.h>
-//#include <iot/az_iot_common.h>
-
-//#include <azure/core/az_platform.h>
-//#include <core/az_platform.h>
-
-#include <azure/core/internal/az_retry_internal.h>
-//#include <core/az_retry_internal.h>
-
-
-#include <azure/iot/az_iot_hub_client.h>
 
 #include "Time/Rs_time_helpers.h"
 
@@ -237,8 +185,6 @@ const int dstOffset = (int)DSTOFFSET;
 
 unsigned long utcTime;
 DateTime dateTimeUTCNow;
-volatile uint32_t dateTimeUtcOldSeconds;
-volatile uint32_t dateTimeUtcNewSeconds;
 
 const char *ssid = IOT_CONFIG_WIFI_SSID;
 const char *password = IOT_CONFIG_WIFI_PASSWORD;
@@ -331,11 +277,7 @@ void myCrashHandler(SAMCrashReport &report)
   sprintf(buf, "Pc: %i", pcState);
   lcd_log_line(buf);
   SAMCrashMonitor::dumpCrash(report);
-  int dummy56738 = 1;
-
 };
-
-
 
 void setup() 
 { 
@@ -372,8 +314,8 @@ void setup()
     onOffDataContainer.Set_InputInverter(i, false);
   }
   
-  //Initialize OnOffSwitcher
-  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 30 sec
+  //Initialize OnOffSwitcher (for tests and simulation)
+  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 60 sec
   onOffSwitcherWio.SetInactive();
   //onOffSwitcherWio.SetActive();
   
@@ -396,8 +338,7 @@ void setup()
   // Seeed_Arduino_rpcUnified/src/rpc_unified_log.h:
   // ( https://forum.seeedstudio.com/t/rpcwifi-library-only-working-intermittently/255660/5 )
 
-  //delay(1000);
-
+  // buffer to hold messages for display
   char buf[100];
   
   sprintf(buf, "RTL8720 Firmware: %s", rpc_system_version());
@@ -518,8 +459,8 @@ if (!WiFi.enableSTA(true))
     WiFi.begin(ssid, password);
   }
 
-   lcd_log_line((char *)"Connected, new Status:");
-    lcd_log_line(itoa((int)WiFi.status(), buf, 10));
+  lcd_log_line((char *)"Connected, new Status:");
+  lcd_log_line(itoa((int)WiFi.status(), buf, 10));
 
   #if WORK_WITH_WATCHDOG == 1
     
@@ -613,10 +554,10 @@ if (!WiFi.enableSTA(true))
   imuManagerWio.begin();
   imuManagerWio.SetActive();
 
-  // Wait for 2000 ms
+  // Wait for 1000 ms
   for (int i = 0; i < 3; i++)
   {
-    delay(1000);
+    delay(500);
     #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
     #endif
@@ -626,7 +567,6 @@ if (!WiFi.enableSTA(true))
   current_text_line = 0;
   tft.fillScreen(screenColor);
   
-
   dateTimeUTCNow = sysTime.getTime();
   time_helpers.update(dateTimeUTCNow);
 
@@ -636,167 +576,16 @@ if (!WiFi.enableSTA(true))
     augmentedAnalogTableName += (dateTimeUTCNow.year());
   }
   
-
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
     #endif
 
-  // RoSchmi: do not delete
-  // The following line creates a table in the Azure Storage Account defined in config.h
-  //az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
-
-
   showDisplayFrame();
   fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false, sendResultState, tryUploadCounter);
-
-
   delay(50);
+
   previousNtpMillis = millis();
 }
-
-void showDisplayFrame()
-{
-  if (showGraphScreen)
-  {
-    tft.fillScreen(TFT_BLUE);
-    backColor = TFT_LIGHTGREY;
-    textFont = FSSB9;
-    textColor = TFT_BLACK;
-    
-    char line[35]{0};
-    char label_left[15] {0};
-    strncpy(label_left, ANALOG_SENSOR_01_LABEL, 13);
-    char label_right[15] {0};
-    strncpy(label_right, ANALOG_SENSOR_02_LABEL, 13);
-    int32_t gapLength_1 = (13 - strlen(label_left)) / 2;
-    int32_t gapLength_2 = (13 - strlen(label_right)) / 2; 
-    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
-    current_text_line = 1;
-    lcd_log_line((char *)line);
-
-    strncpy(label_left, ANALOG_SENSOR_03_LABEL, 13); 
-    strncpy(label_right, ANALOG_SENSOR_04_LABEL, 13);
-    gapLength_1 = (13 - strlen(label_left)) / 2; 
-    gapLength_2 = (13 - strlen(label_right)) / 2;
-    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
-    current_text_line = 6;
-    lcd_log_line((char *)line);
-    current_text_line = 10;   
-    line[0] = '\0';   
-    lcd_log_line((char *)line);
-  }
-}
-
-void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool pSendResultState, uint32_t pTryUploadCtr)
-{
-  if (showGraphScreen)
-  {
-    static TFT_eSprite spr = TFT_eSprite(&tft);
-
-    static uint8_t lastDateOutputMinute = 60;
-
-    static uint32_t lastTryUploadCtr = 0;
-
-    static bool lastSendResultState = false;
-    
-    an_1 = constrain(an_1, -999.9, 999.9);
-    an_2 = constrain(an_2, -999.9, 999.9);
-    an_3 = constrain(an_3, -999.9, 999.9);
-    an_4 = constrain(an_4, -999.9, 999.9);
-
-    
-    char lineBuf[40] {0};
-
-    char valueStringArray[4][7] = {{0}, {0}, {0}, {0}};
-
-    sprintf(valueStringArray[0], "%.1f", an_1);
-    sprintf(valueStringArray[1], "%.1f", an_2);
-    sprintf(valueStringArray[2], "%.1f", an_3);
-    sprintf(valueStringArray[3], "%.1f", an_4);
-
-    for (int i = 0; i < 4; i++)
-    {
-        if (strcmp(valueStringArray[i], "999.9") == 0)
-        {
-            strcpy(valueStringArray[i], "--.-");
-        }
-    }
-
-    int charCounts[4];
-    charCounts[0] = 6 - strlen(valueStringArray[0]);
-    charCounts[1] = 6 - strlen(valueStringArray[1]);
-    charCounts[2] = 6 - strlen(valueStringArray[2]);
-    charCounts[3] = 6 - strlen(valueStringArray[3]);
-    
-    spr.createSprite(120, 30);
-
-    spr.setTextColor(TFT_ORANGE);
-    spr.setFreeFont(FSSBO18);
-
-    for (int i = 0; i <4; i++)
-    {
-      spr.fillSprite(TFT_DARKGREEN);
-      sprintf(lineBuf, "%s%s", spacesArray[charCounts[i]], valueStringArray[i]);
-      spr.drawString(lineBuf, 0, 0);
-      switch (i)
-      {
-        case 0: {spr.pushSprite(25, 54); break;}
-        case 1: {spr.pushSprite(160, 54); break;}
-        case 2: {spr.pushSprite(25, 138); break;}
-        case 3: {spr.pushSprite(160, 138); break;}
-      }     
-    }
-    
-    dateTimeUTCNow = sysTime.getTime();
-    time_helpers.update(dateTimeUTCNow);
-    int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
-    
-    DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
-    
-    char formattedTime[64] {0};
-
-    time_helpers.formattedTime(formattedTime, sizeof(formattedTime), "%d. %b %Y - %A %T");
-    
-    volatile uint8_t actMinute = localTime.minute();
-    if (lastDateOutputMinute != actMinute)
-    {
-      lastDateOutputMinute = actMinute;     
-       current_text_line = 10;
-       sprintf(lineBuf, "%s", (char *)formattedTime);
-       lineBuf[strlen(lineBuf) -3] = '\0';
-       lcd_log_line(lineBuf);
-    }
-
-    // Show signal circle on the screen, showing if upload was successfful (green) or not (red)
-    if (pTryUploadCtr != lastTryUploadCtr)    // if new upload try has happened, show actualized signal 
-    {
-        if (pSendResultState)
-        {
-          tft.fillCircle(300, 9, 8, TFT_DARKGREEN);
-          lastSendResultState = true;          
-        }
-        else
-        {
-          tft.fillCircle(300, 9, 8, TFT_RED);
-          lastSendResultState = false;         
-        }       
-        lastTryUploadCtr = pTryUploadCtr;
-    }
-    else                                  // if no upload try --> switch off if it was green before
-    {
-        if (lastSendResultState == true)
-        {
-          tft.fillCircle(300, 9, 8, TFT_BLUE);
-        }
-    }
-  
-    tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_RED : TFT_DARKGREY);
-    tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_RED : TFT_DARKGREY);
-    tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_RED : TFT_DARKGREY);
-    tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_RED : TFT_DARKGREY);
-  }
-}
-
 
 void loop() 
 { 
@@ -898,25 +687,26 @@ void loop()
           if (augmentTableNameWithYear)
           {
             augmentedAnalogTableName += (dateTimeUTCNow.year());     
-          }            
-              // Create table if table doesn't exist
-              if (localTime.year() != dataContainer.Year)
-              {
-                 az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
+          }
+
+          // Create table if table doesn't exist
+          if (localTime.year() != dataContainer.Year)
+          {
+            az_http_status_code theResult = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
                  
-                 if ((theResult == AZ_HTTP_STATUS_CODE_CONFLICT) || (theResult == AZ_HTTP_STATUS_CODE_CREATED))
-                 {
-                    dataContainer.Set_Year(localTime.year());                   
-                 }
-                 else
-                 {
-                    // Reset board if not successful
-                    NVIC_SystemReset();     // ResetCause Code 64
-                 }
-              }
+            if ((theResult == AZ_HTTP_STATUS_CODE_CONFLICT) || (theResult == AZ_HTTP_STATUS_CODE_CREATED))
+            {
+              dataContainer.Set_Year(localTime.year());                   
+            }
+            else
+            {
+              // Reset board if not successful
+              NVIC_SystemReset();     // ResetCause Code 64
+            }
+          }
 
 
-          // Create an Array of, here, 5 Properties
+          // Create an Array of (here) 5 Properties
           // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
 
           // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
@@ -946,22 +736,19 @@ void loop()
             sprintf(strData, "   Trying to insert %u", insertCounterAnalogTable);   
             lcd_log_line(strData);
           }
-          
-    
+             
           // Keep track of tries to insert and check for memory leak
           insertCounterAnalogTable++;
 
-          // RoSchmi Todo: event. include code to check for memory leaks here
+          // RoSchmi, Todo: event. include code to check for memory leaks here
 
 
           // Store Entity to Azure Cloud   
-          az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+         __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
 
         }
         else     // Task to do was not NTP and not send analog table, so it is Send On/Off values or End of day stuff?
         {
-          
-
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
         
           for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables
@@ -1023,16 +810,14 @@ void loop()
           
               onOffValueSet.OnOffSampleValues[i].insertCounter++;
               
-
               // Store Entity to Azure Cloud   
-              az_http_status_code insertResult = insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
+              __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
               break; // Send only one in each round of loop 
             }
             else
             {
               if (isLast15SecondsOfDay && !onOffValueSet.OnOffSampleValues[i].dayIsLocked)
               {
-
                 if (onOffValueSet.OnOffSampleValues[i].actState == true)              
                 {               
                    onOffDataContainer.Set_ResetToOnIsNeededFlag(i, true);                 
@@ -1056,7 +841,7 @@ void loop()
         } 
       }    
     }
-    if (digitalRead(WIO_5S_PRESS) == LOW)
+    if (digitalRead(WIO_5S_PRESS) == LOW)    // Toggle between graphics screen and Log screen
     {
       if (showGraphScreen)
       {
@@ -1074,10 +859,9 @@ void loop()
         showGraphScreen = !showGraphScreen;
         showDisplayFrame();
       }
-      
+      // Wait until button released
       while(digitalRead(WIO_5S_PRESS) == LOW);   
     }
-
 
     if (showGraphScreen)
     {
@@ -1087,11 +871,154 @@ void loop()
                       onOffDataContainer.ReadOnOffState(2), onOffDataContainer.ReadOnOffState(3),
                       sendResultState, tryUploadCounter);
     }
-    
+
   }
   loopCounter++;
+}                      // End loop
+
+void showDisplayFrame()
+{
+  if (showGraphScreen)
+  {
+    tft.fillScreen(TFT_BLUE);
+    backColor = TFT_LIGHTGREY;
+    textFont = FSSB9;
+    textColor = TFT_BLACK;
+    
+    char line[35]{0};
+    char label_left[15] {0};
+    strncpy(label_left, ANALOG_SENSOR_01_LABEL, 13);
+    char label_right[15] {0};
+    strncpy(label_right, ANALOG_SENSOR_02_LABEL, 13);
+    int32_t gapLength_1 = (13 - strlen(label_left)) / 2;
+    int32_t gapLength_2 = (13 - strlen(label_right)) / 2; 
+    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
+    current_text_line = 1;
+    lcd_log_line((char *)line);
+
+    strncpy(label_left, ANALOG_SENSOR_03_LABEL, 13); 
+    strncpy(label_right, ANALOG_SENSOR_04_LABEL, 13);
+    gapLength_1 = (13 - strlen(label_left)) / 2; 
+    gapLength_2 = (13 - strlen(label_right)) / 2;
+    sprintf(line, "%s%s%s%s%s%s%s ", spacesArray[3], spacesArray[(int)(gapLength_1 * 1.7)], label_left, spacesArray[(int)(gapLength_1 * 1.7)], spacesArray[5], spacesArray[(int)(gapLength_2 * 1.7)], label_right);
+    current_text_line = 6;
+    lcd_log_line((char *)line);
+    current_text_line = 10;   
+    line[0] = '\0';   
+    lcd_log_line((char *)line);
+  }
 }
 
+void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool pSendResultState, uint32_t pTryUploadCtr)
+{
+  if (showGraphScreen)
+  {
+    static TFT_eSprite spr = TFT_eSprite(&tft);
+
+    static uint8_t lastDateOutputMinute = 60;
+
+    static uint32_t lastTryUploadCtr = 0;
+
+    static bool lastSendResultState = false;
+    
+    an_1 = constrain(an_1, -999.9, 999.9);
+    an_2 = constrain(an_2, -999.9, 999.9);
+    an_3 = constrain(an_3, -999.9, 999.9);
+    an_4 = constrain(an_4, -999.9, 999.9);
+
+    char lineBuf[40] {0};
+
+    char valueStringArray[4][7] = {{0}, {0}, {0}, {0}};
+
+    sprintf(valueStringArray[0], "%.1f", an_1);
+    sprintf(valueStringArray[1], "%.1f", an_2);
+    sprintf(valueStringArray[2], "%.1f", an_3);
+    sprintf(valueStringArray[3], "%.1f", an_4);
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (strcmp(valueStringArray[i], "999.9") == 0)
+        {
+            strcpy(valueStringArray[i], "--.-");
+        }
+    }
+
+    int charCounts[4];
+    charCounts[0] = 6 - strlen(valueStringArray[0]);
+    charCounts[1] = 6 - strlen(valueStringArray[1]);
+    charCounts[2] = 6 - strlen(valueStringArray[2]);
+    charCounts[3] = 6 - strlen(valueStringArray[3]);
+    
+    spr.createSprite(120, 30);
+
+    spr.setTextColor(TFT_ORANGE);
+    spr.setFreeFont(FSSBO18);
+
+    for (int i = 0; i <4; i++)
+    {
+      spr.fillSprite(TFT_DARKGREEN);
+      sprintf(lineBuf, "%s%s", spacesArray[charCounts[i]], valueStringArray[i]);
+      spr.drawString(lineBuf, 0, 0);
+      switch (i)
+      {
+        case 0: {spr.pushSprite(25, 54); break;}
+        case 1: {spr.pushSprite(160, 54); break;}
+        case 2: {spr.pushSprite(25, 138); break;}
+        case 3: {spr.pushSprite(160, 138); break;}
+      }     
+    }
+    
+    dateTimeUTCNow = sysTime.getTime();
+    time_helpers.update(dateTimeUTCNow);
+    int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+    
+    DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
+    
+    char formattedTime[64] {0};
+
+    time_helpers.formattedTime(formattedTime, sizeof(formattedTime), (char *)"%d. %b %Y - %A %T");
+    
+    volatile uint8_t actMinute = localTime.minute();
+    if (lastDateOutputMinute != actMinute)
+    {
+      lastDateOutputMinute = actMinute;     
+       current_text_line = 10;
+       sprintf(lineBuf, "%s", (char *)formattedTime);
+       lineBuf[strlen(lineBuf) -3] = (char)'\0';
+       lcd_log_line(lineBuf);
+    }
+
+    // Show signal circle on the screen, showing if upload was successfful (green) or not (red)
+    if (pTryUploadCtr != lastTryUploadCtr)    // if new upload try has happened, show actualized signal 
+    {
+        if (pSendResultState)
+        {
+          tft.fillCircle(300, 9, 8, TFT_DARKGREEN);
+          lastSendResultState = true;          
+        }
+        else
+        {
+          tft.fillCircle(300, 9, 8, TFT_RED);
+          lastSendResultState = false;         
+        }       
+        lastTryUploadCtr = pTryUploadCtr;
+    }
+    else                                  // if no upload try --> switch off if it was green before
+    {
+        if (lastSendResultState == true)
+        {
+          tft.fillCircle(300, 9, 8, TFT_BLUE);
+        }
+    }
+  
+    tft.fillRect(16, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_1 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(92, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_2 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(168, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_3 ? TFT_RED : TFT_DARKGREY);
+    tft.fillRect(244, 12 * LCD_LINE_HEIGHT, 60, LCD_LINE_HEIGHT, on_4 ? TFT_RED : TFT_DARKGREY);
+  }
+}
+
+// To manage daylightsavingstime stuff convert input ("Last", "First", "Second", "Third", "Fourth") to int equivalent
 int getWeekOfMonthNum(const char * weekOfMonth)
 {
   for (int i = 0; i < 5; i++)
@@ -1146,9 +1073,6 @@ unsigned long getNTPtime()
         
         if (udp.parsePacket()) 
         {
-            //Serial.println("udp packet received");
-            //Serial.println("");
-
             // We've received a packet, read the data from it
             udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
  
@@ -1173,8 +1097,7 @@ unsigned long getNTPtime()
             // RoSchmi: inactivated timezone offset
             // long tzOffset = 28800UL;
             long tzOffset = 0UL;
-
-            // WA local time 
+         
             unsigned long adjustedTime;
             return adjustedTime = epoch + tzOffset;
         }
@@ -1218,10 +1141,8 @@ unsigned long sendNTPpacket(const char* address) {
     udp.beginPacket(address, 123); //NTP requests are to port 123
     udp.write(packetBuffer, NTP_PACKET_SIZE);
     udp.endPacket();
+    return 0;
 }
-
-
-
 
 String floToStr(float value)
 {
@@ -1252,8 +1173,6 @@ float ReadAnalogSensor(int pAin)
                         {
                           theRead += SENSOR_1_OFFSET;
                         }
-                        
-
                     }
                     break;
 
@@ -1274,6 +1193,7 @@ float ReadAnalogSensor(int pAin)
                     break;
                 case 2:
                     {
+                        // Here we do not send a sensor value but the state of the upload counter
                         // Upload counter, limited to max. value of 1399
                         theRead = (insertCounterAnalogTable % 1399) / 10.0 ;
                                                 
@@ -1288,6 +1208,7 @@ float ReadAnalogSensor(int pAin)
                 case 3:
                                       
                     {
+                        // Here we do not send a sensor value but the last reset cause
                         // Read the last reset cause for dignostic purpose 
                         theRead = lastResetCause;                        
                     }
@@ -1416,55 +1337,43 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_
 
 
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
-{
-  
+{ 
   #if TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
-    
   #else
     static WiFiClient wifi_client;
   #endif
-
-
 
   #if TRANSPORT_PROTOCOL == 1
     wifi_client.setCACert(myX509Certificate);
     //wifi_client.setCACert(baltimore_corrupt_root_ca);
   #endif
 
-  
+  /*
+  // For tests: Try second upload with corrupted certificate to provoke failure
+  #if TRANSPORT_PROTOCOL == 1
+    wifi_client.setCACert(myX509Certificate);
+    if (insertCounterAnalogTable == 2)
+    {
+      wifi_client.setCACert(baltimore_corrupt_root_ca);
+    }
+  #endif
+  */
 
-/*
-// For tests: Try second upload with corrupted certificate to provoke failure
-#if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(myX509Certificate);
-  if (insertCounterAnalogTable == 2)
-  {
-    wifi_client.setCACert(baltimore_corrupt_root_ca);
-  }
-#endif
-*/
-
-
-  
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
   
-
-
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
   #endif
-  // Insert Entity
-  DateTime responseHeaderDateTime = DateTime();
-
   
+  DateTime responseHeaderDateTime = DateTime();   // Will be filled with DateTime value of the resonse from Azure Service
+
+  // Insert Entity
   az_http_status_code statusCode = table.InsertTableEntity(pTableName, pTableEntity, (char *)outInsertETag, &responseHeaderDateTime, contApplicationIatomIxml, acceptApplicationIjson, dont_returnContent, false);
   
   #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
   #endif
-
-  
 
   lastResetCause = 0;
   tryUploadCounter++;
@@ -1482,8 +1391,8 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
       lcd_log_line((char *)codeString);
     }
     
-
-    #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1
+    
+    #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1    // System time shall be updated from the DateTime value of the response ?
     
     dateTimeUTCNow = sysTime.getTime();
     time_helpers.update(dateTimeUTCNow);
@@ -1492,7 +1401,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     dateTimeUTCNow = responseHeaderDateTime;
     sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
     sysTime.setTime(dateTimeUTCNow); 
-    char buffer[] = "AzureUtc: YYYY-MM-DD hh:mm:ss";
+    char buffer[] = "Azure-Utc: YYYY-MM-DD hh:mm:ss";
     dateTimeUTCNow.toString(buffer);
 
     if (!showGraphScreen)
@@ -1507,7 +1416,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 
     failedUploadCounter++;
     sendResultState = false;
-    lastResetCause = 100;
+    lastResetCause = 100;      // Set lastResetCause to arbitrary value of 100 to signal that post request failed
     
     if (!showGraphScreen)
     {
@@ -1516,8 +1425,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
       lcd_log_line((char *)codeString);
     }
     
-    
-    #if REBOOT_AFTER_FAILED_UPLOAD == 1   // Reboot through SystemReset
+    #if REBOOT_AFTER_FAILED_UPLOAD == 1   // When selected in config.h -> Reboot through SystemReset after failed uoload
 
         #if TRANSPORT_PROTOCOL == 1
 
@@ -1539,14 +1447,7 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     #endif
 
     #if WORK_WITH_WATCHDOG == 1
-      SAMCrashMonitor::iAmAlive();
-
-     /*
-        while(true)               // Makes WatchDog Reset: Code 32
-        {
-          delay(1000);
-        }
-      */     
+      SAMCrashMonitor::iAmAlive();   
     #endif
     delay(1000);
   }
@@ -1554,26 +1455,24 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
 }
 
 
-
 az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName)
 { 
 
-#if TRANSPORT_PROTOCOL == 1
-  static WiFiClientSecure wifi_client;
-#else
-  static WiFiClient wifi_client;
-#endif
+  #if TRANSPORT_PROTOCOL == 1
+    static WiFiClientSecure wifi_client;
+  #else
+    static WiFiClient wifi_client;
+  #endif
 
-#if TRANSPORT_PROTOCOL == 1
-  wifi_client.setCACert(myX509Certificate);
-  //wifi_client.setCACert(baltimore_corrupt_root_ca);
-#endif
+    #if TRANSPORT_PROTOCOL == 1
+    wifi_client.setCACert(myX509Certificate);
+    //wifi_client.setCACert(baltimore_corrupt_root_ca);
+  #endif
 
-#if WORK_WITH_WATCHDOG == 1
+  #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
-#endif
+  #endif
 
-  
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client);
 
   // Create Table
@@ -1581,7 +1480,6 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   
    // RoSchmi for tests: to simulate failed upload
    //az_http_status_code   statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
-
 
   char codeString[35] {0};
   if ((statusCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
@@ -1603,13 +1501,8 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
       sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));   
       lcd_log_line((char *)codeString);
     }
-    delay(1000);   
+    delay(1000);
+    NVIC_SystemReset();     // Makes Code 64  
   }
 return statusCode;
 }
-
-
-
-
-
-

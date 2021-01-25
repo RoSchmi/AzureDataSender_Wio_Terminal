@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Encryption/RoSchmi_encryption_helpers.h>
-#include <AzureStorage/roschmi_az_storage_tables.h>
+#include <roschmi_az_storage_tables.h>
 #include <Time/Rs_time_helpers.h>
 
 #include <AzureStorage/TableEntityProperty.h>
@@ -302,13 +302,13 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   setWiFiClient(_wifiClient);
 
   //az_result const table_create_result
-  az_result table_create_result
-      = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), 
+  
+  __unused az_result table_create_result =  az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), 
       az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
 
   az_http_response_status_line statusLine;
 
-  az_result result = az_http_response_get_status_line(&http_response, &statusLine);
+  __unused az_result result = az_http_response_get_status_line(&http_response, &statusLine);
 
  return statusLine.status_code;          
 }
@@ -486,12 +486,12 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   setCaCert(_caCert);
   setWiFiClient(_wifiClient);
 
-  az_result const entity_upload_result
-      = az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
+  /* az_result const entity_upload_result = */
+    az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
     
     az_http_response_status_line statusLine;
 
-    az_result result = az_http_response_get_status_line(&http_response, &statusLine);    
+     __unused az_result result = az_http_response_get_status_line(&http_response, &statusLine);    
 
     az_span etagName = AZ_SPAN_FROM_STR("ETag");
     char keyBuf[20] {0};
@@ -506,7 +506,7 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
     
     for (int i = 0; i < 5; i++)
     {
-      az_result headerResult = az_http_response_get_next_header(&http_response, &headerKey, &headerValue);
+      __unused az_result headerResult = az_http_response_get_next_header(&http_response, &headerKey, &headerValue);
       if (az_span_is_content_equal(headerKey, etagName))
       {       
         az_span_to_str((char *)out_ETAG, 49, headerValue);
@@ -514,9 +514,8 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
       if (az_span_is_content_equal(headerKey, dateName))
       {
         az_span_to_str((char *)dateBuf, 59, headerValue);
-        //responseHeaderUtcTime = GetDateTimeFromDateHeader(headerValue);
-        *outResponsHeaderDate = GetDateTimeFromDateHeader(headerValue);
-        //*outResponsHeaderDate = responseHeaderUtcTime;
+        
+        *outResponsHeaderDate = GetDateTimeFromDateHeader(headerValue);    
       }
     }
     
@@ -531,7 +530,8 @@ DateTime GetDateTimeFromDateHeader(az_span x_ms_time)
 
   bool parseError = false;
   
-  az_span dayOfMonth = AZ_SPAN_FROM_STR("00");
+  // RoSchmi
+  //az_span dayOfMonth = AZ_SPAN_FROM_STR("00");
 
   int32_t theDay = 0;
   int32_t theMonth = -1;

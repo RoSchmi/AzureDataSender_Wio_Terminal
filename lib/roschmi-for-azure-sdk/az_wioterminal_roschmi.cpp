@@ -81,14 +81,14 @@ volatile size_t headerSize = strlen(theHeader_str);
     char protocol[6] {0};
     urlWorkCopy = request->_internal.url;
   
-    bool protocolIsHttpOrHttps = false;
+    /* bool protocolIsHttpOrHttps = false; */
     int32_t slashIndex = - 1;
     if (colonIndex != -1)
     {
         az_span_to_str(protocol, 6, az_span_slice(urlWorkCopy, 0, colonIndex));
         if ((strcmp(protocol, (const char *)"https") == 0) || (strcmp(protocol, (const char *)"http") == 0))
         {
-            protocolIsHttpOrHttps = true;
+            /* protocolIsHttpOrHttps = true; */
         }
 
         slashIndex = az_span_find(az_span_slice_to_end(urlWorkCopy, colonIndex + 3), AZ_SPAN_LITERAL_FROM_STR("/"));
@@ -150,14 +150,11 @@ volatile size_t headerSize = strlen(theHeader_str);
       devHttp->addHeader(nameString, valueString, true, true);   
     }
 
-    int32_t bodySize = request->_internal.body._internal.size;
-    //char theBody[550] {0};
-    //char theBody[bodySize + 10] {0};
-    
-    // az_span_to_str((char *)theBody, bodySize + 1, request->_internal.body);
-    
+    // int32_t bodySize = request->_internal.body._internal.size;
+
     uint8_t * theBody = request->_internal.body._internal.ptr;
-    //uint8_t * theBody = (uint8_t *)"hallo";
+
+    
 
     if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
     {       
@@ -167,10 +164,7 @@ volatile size_t headerSize = strlen(theHeader_str);
         int httpCode = -1;
 
         httpCode = devHttp->POST((char *)theBody);
-
-        //int httpCode = devHttp->POST(theBody, strlen((char *)theBody));
-        //httpCode = -1;
-          
+ 
         delay(1); 
         
 
@@ -304,11 +298,11 @@ volatile size_t headerSize = strlen(theHeader_str);
     {
       if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("GET")))
       {
-        volatile int dummy7jsgj = 1;
+        // Not used
       }
       else
       {
-        volatile int dummy7jdgj = 1;
+        // Not used
       }
       
     }
