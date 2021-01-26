@@ -5,8 +5,6 @@
 
 DateTime  lastSwitchTime = DateTime();
 TimeSpan  switchInterval = TimeSpan(60);
-//bool state = false;
-//bool isActive = false;
 
 OnOffSwitcherWio::OnOffSwitcherWio()
 {}

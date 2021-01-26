@@ -33,8 +33,7 @@ public:
     void SetNewImuReadings(ImuSampleValues imuReadings);
     float GetVibrationValue();
     ImuSampleValues GetLastImuReadings();
-    bool hasToggled(DateTime actUtcTime);
-    //ImuSampleValues GetStates();
+    bool hasToggled(DateTime actUtcTime);  
 
 private:
     bool isActive = false;

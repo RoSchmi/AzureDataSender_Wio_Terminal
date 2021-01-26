@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-
 #ifndef _ROSCHMI_TIME_HELPERS_H_
 #define _ROSCHMI_TIME_HELPERS_H_
 
@@ -19,13 +17,6 @@
 enum week_t {Last, First, Second, Third, Fourth}; 
 enum dow_t {Sun, Mon, Tue, Wed, Thu, Fri, Sat};
 enum month_t {Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec};
-
-/*
-#ifdef __cplusplus
-extern "C"
-{
-#endif // __cplusplus
-*/
 
 class Rs_time_helpers {
 
@@ -56,7 +47,7 @@ class Rs_time_helpers {
      */
     void begin();
 
-/**
+    /**
      * @brief set the rule for DST (daylight saving time)
      * start date of DST 
      * 
@@ -96,16 +87,12 @@ class Rs_time_helpers {
      */
     const char* ruleSTD();
 
-
-
     /**
      * @brief get the name of the timezone
      * 
      * @return char* name of the timezone
      */
     const char* tzName();
-
-
 
    /**
      * @brief set the timezone manually 
@@ -132,7 +119,7 @@ class Rs_time_helpers {
     bool isDST();
 
 
-/**
+    /**
      * @brief returns a formatted string
      * 
      * @param format for strftime
@@ -196,6 +183,5 @@ private:
     bool summerTime();
 
 };
-
 
 #endif

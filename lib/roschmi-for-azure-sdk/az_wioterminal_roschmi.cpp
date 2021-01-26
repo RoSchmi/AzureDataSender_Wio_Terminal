@@ -5,6 +5,16 @@
 // Copyright (c) RoSchmi. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// The code of this file provides Wio Terminal specific solutions for the 'generic' function calls from
+// the azure-sdk-for-c
+
+// These functions are:
+//    az_http_client_send_request(...);
+//    az_platform_clock_msec(...);
+//    az_platform_sleep_msec(...)
+
+
+
 #include <azure/core/az_http.h>
 #include <azure/core/az_http_transport.h>
 #include <azure/core/az_span.h>
@@ -16,15 +26,9 @@
 #include <azure/core/az_platform.h>
 #include <az_wioterminal_roschmi.h>
 
-/*
-#ifdef __cplusplus
-extern "C"
-{
-#endif // __cplusplus
-*/
 
 HTTPClient *  devHttp = NULL;
-WiFiClient * devWifiClient = NULL;
+WiFiClient * devWifiClient = NULL;  
 
 const char * _caCertificate;
 
@@ -56,131 +60,125 @@ az_http_client_send_request(az_http_request const* request, az_http_response* re
   _az_PRECONDITION_NOT_NULL(request);
   _az_PRECONDITION_NOT_NULL(ref_response);
 
-// Working with spans
-//https://github.com/Azure/azure-sdk-for-c/tree/master/sdk/docs/core#working-with-spans
+  // Working with spans
+  //https://github.com/Azure/azure-sdk-for-c/tree/master/sdk/docs/core#working-with-spans
   
   az_http_method requMethod = request->_internal.method;
   int32_t max_header_count = request->_internal.max_headers;
   size_t headerCount = az_http_request_headers_count(request);
 
-// Code to copy all headers into one string, actually not needed
-/*
-uint8_t headers_buffer[300] {0};
+  // Code to copy all headers into one string, actually not needed
+  /*
+  uint8_t headers_buffer[300] {0};
   az_span headers_span = AZ_SPAN_FROM_BUFFER(headers_buffer);
-az_result myResult = dev_az_http_client_build_headers(request, headers_span);
-char* theHeader_str = (char*) az_span_ptr(headers_span);
-volatile size_t headerSize = strlen(theHeader_str);
-*/
+  az_result myResult = dev_az_http_client_build_headers(request, headers_span);
+  char* theHeader_str = (char*) az_span_ptr(headers_span);
+  volatile size_t headerSize = strlen(theHeader_str);
+  */
     
-    //az_span_to_str(char* destination, int32_t destination_max_size, az_span source);
+  //az_span_to_str(char* destination, int32_t destination_max_size, az_span source);
     
-    az_span urlWorkCopy = request->_internal.url;
+  az_span urlWorkCopy = request->_internal.url;
 
-    int32_t colonIndex = az_span_find(urlWorkCopy, AZ_SPAN_LITERAL_FROM_STR(":"));
+  int32_t colonIndex = az_span_find(urlWorkCopy, AZ_SPAN_LITERAL_FROM_STR(":"));
 		
-    char protocol[6] {0};
-    urlWorkCopy = request->_internal.url;
+  char protocol[6] {0};
+  urlWorkCopy = request->_internal.url;
   
-    /* bool protocolIsHttpOrHttps = false; */
-    int32_t slashIndex = - 1;
-    if (colonIndex != -1)
+  /* bool protocolIsHttpOrHttps = false; */
+  int32_t slashIndex = - 1;
+  if (colonIndex != -1)
+  {
+    az_span_to_str(protocol, 6, az_span_slice(urlWorkCopy, 0, colonIndex));
+    if ((strcmp(protocol, (const char *)"https") == 0) || (strcmp(protocol, (const char *)"http") == 0))
     {
-        az_span_to_str(protocol, 6, az_span_slice(urlWorkCopy, 0, colonIndex));
-        if ((strcmp(protocol, (const char *)"https") == 0) || (strcmp(protocol, (const char *)"http") == 0))
-        {
-            /* protocolIsHttpOrHttps = true; */
-        }
+      /* protocolIsHttpOrHttps = true; */
+    }
 
-        slashIndex = az_span_find(az_span_slice_to_end(urlWorkCopy, colonIndex + 3), AZ_SPAN_LITERAL_FROM_STR("/"));
+    slashIndex = az_span_find(az_span_slice_to_end(urlWorkCopy, colonIndex + 3), AZ_SPAN_LITERAL_FROM_STR("/"));
         
-        slashIndex = (slashIndex != -1) ? slashIndex + colonIndex + 3 : -1;       
-    }
+    slashIndex = (slashIndex != -1) ? slashIndex + colonIndex + 3 : -1;       
+  }
     
-    char workBuffer[100] {0};
+  char workBuffer[100] {0};
     
-    if (slashIndex == -1)
-    {
-      az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(urlWorkCopy, colonIndex + 3));
-    }
-    else
-    {
-       az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(az_span_slice(urlWorkCopy, 0, slashIndex), colonIndex + 3));
-    }
-    String host = (const char *)workBuffer;
+  if (slashIndex == -1)
+  {
+    az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(urlWorkCopy, colonIndex + 3));
+  }
+  else
+  {
+    az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(az_span_slice(urlWorkCopy, 0, slashIndex), colonIndex + 3));
+  }
+  String host = (const char *)workBuffer;
 
-    if (slashIndex != -1)
-    {
-      memset(workBuffer, 0, sizeof(workBuffer));
-      az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(urlWorkCopy, slashIndex));
-    }
-    String resource = slashIndex != -1 ? (const char *)workBuffer : "";
+  if (slashIndex != -1)
+  {
+    memset(workBuffer, 0, sizeof(workBuffer));
+    az_span_to_str(workBuffer, sizeof(workBuffer), az_span_slice_to_end(urlWorkCopy, slashIndex));
+  }
+  String resource = slashIndex != -1 ? (const char *)workBuffer : "";
 
+  uint16_t port = (strcmp(protocol, (const char *)"http") == 0) ? 80 : 443;
 
-    uint16_t port = (strcmp(protocol, (const char *)"http") == 0) ? 80 : 443;
-
-    devHttp->setReuse(false);
+  devHttp->setReuse(false);
     
-    
-    if (port == 80)
-    { 
+  if (port == 80)      // http ?
+  { 
       devHttp->begin(* devWifiClient, host, port, resource, false);      
-    }
-    else
-    {
-      devHttp->begin(* devWifiClient, host, port, resource, true);        
-    }
+  }
+  else                 // https
+  {
+    devHttp->begin(* devWifiClient, host, port, resource, true);        
+  }
     
-    char name_buffer[MAX_HEADERNAME_LENGTH +2] {0};
-    char value_buffer[MAX_HEADERVALUE_LENGTH +2] {0};
-    az_span head_name = AZ_SPAN_FROM_BUFFER(name_buffer);
-    az_span head_value = AZ_SPAN_FROM_BUFFER(value_buffer);
+  char name_buffer[MAX_HEADERNAME_LENGTH +2] {0};
+  char value_buffer[MAX_HEADERVALUE_LENGTH +2] {0};
+  az_span head_name = AZ_SPAN_FROM_BUFFER(name_buffer);
+  az_span head_value = AZ_SPAN_FROM_BUFFER(value_buffer);
     
-    String nameString = "";
-    String valueString = "";
+  String nameString = "";
+  String valueString = "";
 
-    for (int32_t offset = (headerCount - 1); offset >= 0; offset--)
-    {
-      _az_RETURN_IF_FAILED(az_http_request_get_header(request, offset, &head_name, &head_value));
+  for (int32_t offset = (headerCount - 1); offset >= 0; offset--)
+  {
+    _az_RETURN_IF_FAILED(az_http_request_get_header(request, offset, &head_name, &head_value));
       
-      az_span_to_str((char *)name_buffer, MAX_HEADERNAME_LENGTH -1, head_name);
-      az_span_to_str((char *)value_buffer, MAX_HEADERVALUE_LENGTH -1, head_value);
-      nameString = (char *)name_buffer;
-      valueString = (char *)value_buffer;
+    az_span_to_str((char *)name_buffer, MAX_HEADERNAME_LENGTH -1, head_name);
+    az_span_to_str((char *)value_buffer, MAX_HEADERVALUE_LENGTH -1, head_value);
+    nameString = (char *)name_buffer;
+    valueString = (char *)value_buffer;
 
-      devHttp->addHeader(nameString, valueString, true, true);   
-    }
+    devHttp->addHeader(nameString, valueString, true, true);   
+  }
 
-    // int32_t bodySize = request->_internal.body._internal.size;
+  // int32_t bodySize = request->_internal.body._internal.size;
 
-    uint8_t * theBody = request->_internal.body._internal.ptr;
+  uint8_t * theBody = request->_internal.body._internal.ptr;
 
-    
-
-    if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
-    {       
-        const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
-        devHttp->collectHeaders(headerKeys, 5);
+  
+  if (az_span_is_content_equal(requMethod, AZ_SPAN_LITERAL_FROM_STR("POST")))
+  {       
+    const char * headerKeys[] = {"ETag", "Date", "x-ms-request-id", "x-ms-version", "Content-Type"};       
+    devHttp->collectHeaders(headerKeys, 5);
       
-        int httpCode = -1;
+    int httpCode = -1;
 
-        httpCode = devHttp->POST((char *)theBody);
+    httpCode = devHttp->POST((char *)theBody);
  
-        delay(1); 
+    delay(1); 
         
-
-        //volatile size_t responseBodySize = devHttp->getSize();
+    //volatile size_t responseBodySize = devHttp->getSize();
               
-       
-
-        int indexCtr = 0;
-        int pageWidth = 50;
+    int indexCtr = 0;
+    int pageWidth = 50;
         
-        delay(2000);
+    //delay(2000);
         
-        az_result appendResult;
-        char httpStatusLine[40] {0};
-        if (httpCode > 0)  // Request was successful
-        {      
+    az_result appendResult;
+    char httpStatusLine[40] {0};
+    if (httpCode > 0)  // Request was successful
+    {      
           sprintf((char *)httpStatusLine, "%s%i%s", "HTTP/1.1 ", httpCode, " ***\r\n");
           appendResult = az_http_response_append(ref_response, az_span_create_from_str((char *)httpStatusLine));
 
@@ -200,7 +198,10 @@ volatile size_t headerSize = strlen(theHeader_str);
         {
           int httpCodeCopy = httpCode;
           char messageBuffer[30] {0};
-
+          
+          // Hack: Convert negative return codes from post request into http codes 401 - 412, so that they can be handeled
+          // (returned) as az_http_status_code
+                 
           switch (httpCodeCopy)
           {
             case -1: {
@@ -273,6 +274,7 @@ volatile size_t headerSize = strlen(theHeader_str);
 
         devHttp->end();
         
+        // For debugging
         /*
         char buffer[1000];
         az_span content = AZ_SPAN_FROM_BUFFER(buffer);
@@ -312,22 +314,6 @@ volatile size_t headerSize = strlen(theHeader_str);
    return AZ_OK;
 }
 
-// AZ_NODISCARD int64_t az_platform_clock_msec() { return 0; }
-
-/*
-// For Arduino (Wio Terminal)
-// this defines clockCyclesPerMicrosecond if its not already defined
-AZ_NODISCARD int64_t az_platform_clock_msec() 
-{
-  //#ifndef clockCyclesPerMicrosecond()
-  //  #define clockCyclesPerMicrosecond() ( F_CPU / 1000000L )
-  //#endif
-  
-   return (int64_t)((int64_t)clockCyclesPerMicrosecond() * 1000L); 
-
-}
-*/
-
 AZ_NODISCARD az_result az_platform_clock_msec(int64_t* out_clock_msec)
 {
   
@@ -336,24 +322,12 @@ AZ_NODISCARD az_result az_platform_clock_msec(int64_t* out_clock_msec)
   return AZ_OK;
 } 
 
-
-
-
-
-//void az_platform_sleep_msec(int32_t milliseconds) { (void)milliseconds; }
-
-
 // For Arduino (Wio Terminal):
 AZ_NODISCARD az_result az_platform_sleep_msec(int32_t milliseconds) 
 { 
   delay(milliseconds);
   return AZ_OK;
 }
-
-
-
-
-
 
 void setHttpClient(HTTPClient * httpClient)
 {
@@ -371,7 +345,7 @@ void setCaCert(const char * caCert)
 }
 
 /**
- * @brief loop all the headers from a HTTP request and compine all headers into one az_span
+ * @brief loop all the headers from a HTTP request and combine all headers into one az_span
  *
  * @param request an http builder request reference
  * @param ref_headers list of headers

@@ -29,9 +29,6 @@ static SysTime sysTime;
         char * _OperationResponseMD5; 
         char * _OperationResponseETag; 
 
-        //private Hashtable _OperationResponseSingleQuery = null;
-        //private ArrayList _OperationResponseQueryList = null;
-
 // forward declarations
 void GetDateHeader(DateTime, char * stamp, char * x_ms_time);
 void appendCharArrayToSpan(az_span targetSpan, const size_t maxTargetLength, const size_t startIndex, size_t *outEndIndex, const char * stringToAppend);
@@ -58,7 +55,7 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
         const size_t Md5HashStrLenght = 16 + 1;
         char md5HashStr[Md5HashStrLenght] {0};
         
-       createMd5Hash(md5HashStr, Md5HashStrLenght, content);    
+        __unused int createMd5Result = createMd5Hash(md5HashStr, Md5HashStrLenght, content);    
 
         // Convert to hex-string
         stringToHexString(pMD5HashHex, md5HashStr, (const char *)"");
@@ -82,8 +79,7 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
     //https://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/src/connect/mbedtls/
             
     // Base64-decode (Azure Storage Key)
-
-             
+           
     char base64DecOut[80] {0};
     int decodeResult = base64_decode(_accountPtr->AccountKey.c_str(), base64DecOut);               
     size_t decodedKeyLen = (decodeResult != -1) ? decodeResult : 0;
@@ -98,7 +94,7 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
              
     const size_t sha256HashBufferLength = 32 + 1;
     char sha256HashStr[sha256HashBufferLength] {0};
-    createSHA256Hash(sha256HashStr, sha256HashBufferLength, toSign, strlen(toSign), base64DecOut, decodedKeyLen); 
+    __unused int craeteSHA256Result = createSHA256Hash(sha256HashStr, sha256HashBufferLength, toSign, strlen(toSign), base64DecOut, decodedKeyLen); 
     
 
     // 3) Base-64 encode the SHA-265 encoded canonical resorce
@@ -122,23 +118,19 @@ void TableClient::CreateTableAuthorizationHeader(const char * content, const cha
         
     }
     else
-    {    
-           
+    {        
         sprintf(retBuf, "%s %s:%s", (char *)"SharedKey", (char *)_accountPtr->AccountName.c_str(), hmacResultBase64);                
         char * ptr = &pAutorizationHeader[0];
         for (size_t i = 0; i < strlen(retBuf); i++) {
             ptr[i] = retBuf[i];
         }
-        ptr[strlen(retBuf)] = '\0'; 
-            
-    } 
-         
+        ptr[strlen(retBuf)] = '\0';            
+    }      
  }
 
 
 // Constructor
 TableClient::TableClient(CloudStorageAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient)
-
 {
     _accountPtr = account;
     _caCert = caCert;
@@ -147,8 +139,6 @@ TableClient::TableClient(CloudStorageAccount * account, const char * caCert, HTT
 }
 TableClient::~TableClient()
 {};
-
-
 
 
 az_http_status_code TableClient::CreateTable(const char * tableName, ContType pContentType, 
@@ -160,10 +150,7 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
    {
       validTableName[MAX_TABLENAME_LENGTH] = '\0';
    }
-   
-
-  //OperationResultsClear();
-            
+           
   char x_ms_timestamp[35] {0};
   char timestamp[22] {0};
 
@@ -190,22 +177,6 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
           char * li12 = (char *)validTableName;
     const char * PROGMEM li13 = "</d:TableName></m:properties></content></entry>";
            
-  //char addBuffer[600];
-  //sprintf(addBuffer, "%s%s%s%s%s%s%s%s%s%s%s%s%s", li1, li2, li3, li4,li5, li6, li7, li8, li9, li10,li11, li12, li13);
-  
-  
-  // Fills memory from 0x20029200 -  with pattern AA55
-  // So you can see at breakpoints how much of heap was used
-  /*
-  uint32_t * ptr_one;
-  ptr_one = (uint32_t *)0x20029200;
-  while (ptr_one < (uint32_t *)0x20029580)
-  {
-    *ptr_one = (uint32_t)0xAA55AA55;
-     ptr_one++;
-  }
-  */
-  
   // Create the body of the request
    // To save memory for heap, allocate buffer which can hold 900 bytes at adr 0x20029200
    uint8_t addBuffer[1];
@@ -213,7 +184,6 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
    addBufAddress = (uint8_t *)REQUEST_BODY_BUFFER_MEMORY_ADDR;
 
    az_span startContent_to_upload = az_span_create(addBufAddress, REQUEST_BODY_BUFFER_LENGTH);
-
 
    uint8_t remainderBuffer[1];
    uint8_t * remainderBufAddress = (uint8_t *)remainderBuffer;
@@ -233,17 +203,9 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li12));
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li13));
             
-   //remainder =  az_span_copy_u8(remainder, 0);
    az_span_copy_u8(remainder, 0);
 
-
-
   az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);  
-
-
-
-
-  //az_span content_to_upload = az_span_create_from_str(addBuffer);
 
   String urlPath = validTableName;
   String TableEndPoint = _accountPtr->UriEndPointTable;
@@ -258,13 +220,9 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 
   char authorizationHeaderBuffer[100] {0};
 
-  //CreateTableAuthorizationHeader((char *)addBuffer, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
   CreateTableAuthorizationHeader((char *)addBufAddress, accountName_and_Tables, (const char *)x_ms_timestamp, HttpVerb, 
   contentTypeAzSpan, md5Buffer, authorizationHeaderBuffer, useSharedKeyLite);
-
-
-  //String authorizationHeader = String((char *)authorizationHeaderBuffer);
-           
+      
   az_storage_tables_client tabClient;        
   az_storage_tables_client_options options = az_storage_tables_client_options_default();
                         
@@ -290,19 +248,15 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   uploadOptions._internal.contentType = contentTypeAzSpan;
   uploadOptions._internal.perferType = responseTypeAzSpan;
 
-
   _az_http_policy_apiversion_options apiOptions = _az_http_policy_apiversion_options_default();
   apiOptions._internal.name = AZ_SPAN_LITERAL_FROM_STR("");
   apiOptions._internal.version = AZ_SPAN_LITERAL_FROM_STR("");
   apiOptions._internal.option_location = _az_http_policy_apiversion_option_location_header;
 
-  
   setHttpClient(_httpPtr);
   setCaCert(_caCert);
   setWiFiClient(_wifiClient);
 
-  //az_result const table_create_result
-  
   __unused az_result table_create_result =  az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), 
       az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
 
@@ -423,17 +377,9 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li20));
             remainder = az_span_copy(remainder, az_span_create_from_str((char *)li21));
     
-  //remainder = az_span_copy_u8(remainder, 0);
+  
   az_span_copy_u8(remainder, 0);
   
-  // This is how concatenation of the strings was done before
-  // It made the application crash in building sha512 hash
-  //char * contToUpl = (char *)addBufAddress;
-  //String toUpload = contToUpl;
-  //char addBuffer[650];
-  //char addBuffer[700];
-  //sprintf(addBuffer, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", li1, li2, li3, li4,li5, li6, li7, li8, li9, li10,li11, li12, li13, li14, li15, li16, li17, li18, li19, li20, li21); 
- 
   az_span content_to_upload = az_span_create_from_str((char *)addBufAddress);   
              
    String urlPath = validTableName;
@@ -467,8 +413,7 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   // To save memory set buffer address to 0x2002A000
    uint8_t * responseBufferAddr = (uint8_t *)RESPONSE_BUFFER_MEMORY_ADDR;
   az_span response_az_span = az_span_create(responseBufferAddr, RESPONSE_BUFFER_LENGTH);
-  //az_span_fill(response_az_span, 0);
-
+  
   az_http_response http_response;
   if (az_result_failed(az_http_response_init(&http_response, response_az_span)))
   {
@@ -486,7 +431,7 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
   setCaCert(_caCert);
   setWiFiClient(_wifiClient);
 
-  /* az_result const entity_upload_result = */
+  __unused az_result const entity_upload_result = 
     az_storage_tables_upload(&tabClient, content_to_upload, az_span_create_from_str(md5Buffer), az_span_create_from_str((char *)authorizationHeaderBuffer), az_span_create_from_str((char *)x_ms_timestamp), &uploadOptions, &http_response);
     
     az_http_response_status_line statusLine;
@@ -502,8 +447,6 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
     az_span dateName = AZ_SPAN_FROM_STR("Date");
     char dateBuf[60] {0};
 
-    //DateTime responseHeaderUtcTime;
-    
     for (int i = 0; i < 5; i++)
     {
       __unused az_result headerResult = az_http_response_get_next_header(&http_response, &headerKey, &headerValue);
@@ -518,8 +461,6 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
         *outResponsHeaderDate = GetDateTimeFromDateHeader(headerValue);    
       }
     }
-    
-    
     return statusLine.status_code; 
 }
 
@@ -530,9 +471,6 @@ DateTime GetDateTimeFromDateHeader(az_span x_ms_time)
 
   bool parseError = false;
   
-  // RoSchmi
-  //az_span dayOfMonth = AZ_SPAN_FROM_STR("00");
-
   int32_t theDay = 0;
   int32_t theMonth = -1;
   int32_t theYear = 0;

@@ -101,8 +101,6 @@ void stringToHexString(char * output, const char * input, const char * delimiter
     }
 }
 
-
-
 // returns -1 if something went wrong, otherwise count of bytes written
 int base64_decode(const char * input, char * output)
 {
@@ -128,7 +126,6 @@ int base64_decode(const char * input, char * output)
         return olen;
     }
 }
-
 
 
 // returns 0 if everthing worked o.k. returns 1 in case of some error

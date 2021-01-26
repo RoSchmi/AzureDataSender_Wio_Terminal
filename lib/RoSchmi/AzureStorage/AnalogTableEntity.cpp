@@ -4,8 +4,6 @@
 #include <azure/core/az_span.h>
 
         
-        //EntityProperty * Properties;
-
 // Your entity type must expose a parameter-less constructor
         AnalogTableEntity::AnalogTableEntity() { }
 
@@ -28,49 +26,8 @@
             myProperties.T_3 = az_span_create_from_str(pProperties[3].Value);
             myProperties.T_4 = az_span_create_from_str(pProperties[4].Value);
             
-           // {
-                
-            //    PartitionKey = partitionKey,
-            //    RowKey = rowKey,
-                /*
-                SampleTime = (EntityProperty)Properties[0].
-                SampleTime = ((string[]) this.Properties[0])[2],
-                T_1 = ((string[])this.Properties[1])[2],
-                T_2 = ((string[])this.Properties[2])[2],
-                T_3 = ((string[])this.Properties[3])[2],
-                T_4 = ((string[])this.Properties[4])[2],
-                */
-           // };
-            
-
         //  this.JsonString = JsonConverter.Serialize(myProperties).ToString();
         }
 
         AnalogTableEntity::PropertyClass::PropertyClass(){};
-        
-       // AnalogTableEntity::~AnalogTableEntity()
-       // {};
-        
-        /*
-        class PropertyClass
-        {
-            
-           az_span RowKey;
-           az_span PartitionKey;
-           az_span SampleTime;
-           az_span T_1;
-           az_span T_2;
-           az_span T_3;
-           az_span T_4;
-
-           PropertyClass();
-           
-           PropertyClass(az_span RowKey, az_span PartitionKey)
-           {
-
-           }
-           
-        };
-        */
-
-        
+             

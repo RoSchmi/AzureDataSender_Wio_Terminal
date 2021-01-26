@@ -1,5 +1,3 @@
-// This Class is only for tests, can be deleted
-
 #include <Arduino.h>
 #include <AzureStorage/CloudStorageAccount.h>
 

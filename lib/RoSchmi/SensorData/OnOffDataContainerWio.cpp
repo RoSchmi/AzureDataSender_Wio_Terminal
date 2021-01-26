@@ -4,7 +4,6 @@
 
 OnOffSampleValueSet onOffSampleValueSet;
 
-
 OnOffDataContainerWio::OnOffDataContainerWio()
 {}
 
@@ -74,7 +73,6 @@ void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTi
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = true;
     }
 }
-
 
 void OnOffDataContainerWio::PresetOnOffState(int sensorIndex, bool state, bool lastState, DateTime time)
 { 

@@ -1,4 +1,4 @@
-// RoSchmi_time_helpers fpr Arduino framwork
+// RoSchmi_time_helpers for Arduino framework
 //
 // Parts of the code are taken from @sstaub NTP library for Arduino framework
 // which has the following license
@@ -24,19 +24,13 @@
  * SOFTWARE.
  */
 
-
 #include <Arduino.h>
 #include <DateTime.h>
 #include "Time/Rs_time_helpers.h"
 
+Rs_time_helpers::Rs_time_helpers() { }
 
-Rs_time_helpers::Rs_time_helpers() {
-  
-  }
-
-Rs_time_helpers::~Rs_time_helpers() {
-
-  }
+Rs_time_helpers::~Rs_time_helpers() { }
   
   void Rs_time_helpers::begin() 
   {
@@ -47,8 +41,6 @@ Rs_time_helpers::~Rs_time_helpers() {
       beginDST();
     } 
   }
-
-
 
   void Rs_time_helpers::update(DateTime utcNow)
   {
@@ -147,15 +139,15 @@ bool Rs_time_helpers::isDST() {
     {
       return false;
     }
-     
-
   }
 
-  void Rs_time_helpers::offset(int16_t days, int8_t hours, int8_t minutes, int8_t seconds) {
+void Rs_time_helpers::offset(int16_t days, int8_t hours, int8_t minutes, int8_t seconds) 
+{
   diffTime = (86400 * days) + (3600 * hours) + (60 * minutes) + seconds;
-  }
+}
 
-void Rs_time_helpers::beginDST() {
+void Rs_time_helpers::beginDST() 
+{
   dstTime = calcDateDST(dstStart, current->tm_year + 1900);
   utcDST = dstTime - (dstEnd.tzOffset * SECS_PER_MINUTES);
   stdTime = calcDateDST(dstEnd, current->tm_year + 1900);
@@ -163,7 +155,8 @@ void Rs_time_helpers::beginDST() {
   yearDST = current->tm_year + 1900;
   }
 
-time_t Rs_time_helpers::calcDateDST(struct ruleDST rule, int year) {
+time_t Rs_time_helpers::calcDateDST(struct ruleDST rule, int year) 
+{
 	uint8_t month = rule.month;
 	uint8_t week = rule.week;
 	if (week == 0) {
@@ -172,7 +165,7 @@ time_t Rs_time_helpers::calcDateDST(struct ruleDST rule, int year) {
 			year++;
 			}
 		week = 1;
-		}
+}
 
 	struct tm tm;
 	tm.tm_hour = rule.hour;
@@ -188,16 +181,18 @@ time_t Rs_time_helpers::calcDateDST(struct ruleDST rule, int year) {
 	return t;
 	}
 
-bool Rs_time_helpers::summerTime() {
+bool Rs_time_helpers::summerTime() 
+{
   if ((utcCurrent > utcDST) && (utcCurrent <= utcSTD)) {
     return true;
     }
   else {
     return false;
     }
-  }
+}
 
-  void Rs_time_helpers::currentTime() {
+void Rs_time_helpers::currentTime() 
+{
   utcCurrent = diffTime + utcTime + ((millis() - lastUpdate) / 1000); 
   if (dstZone) {
     if (summerTime()) {
@@ -214,7 +209,7 @@ bool Rs_time_helpers::summerTime() {
     local = utcCurrent + timezoneOffset;
     current = gmtime(&local);
     }
-  }
+}
 
 void Rs_time_helpers::dateTimeToStringFormat_01(char * outBuffer50Bytes, const char *format)
 {

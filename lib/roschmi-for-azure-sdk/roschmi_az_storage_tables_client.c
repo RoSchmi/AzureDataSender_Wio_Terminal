@@ -1,6 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// The code of this files provided the following functions which are called by TableClient.cpp to set up
+// a request and receive data from the response
+//
+// az_storage_tables_client_init(...);
+// az_storage_tables_client_options_default(...);
+// az_result az_storage_tables_upload(...);
+
+
 #include <azure/core/az_http.h>
 #include <azure/core/az_http_transport.h>
 #include <azure/core/az_json.h>
@@ -13,7 +21,6 @@
 #include <azure/core/Internal/az_retry_internal.h>
 #include <azure/core/internal/az_span_internal.h>
 #include <roschmi_az_storage_tables.h>
-
 
 #include <stddef.h>
 
@@ -279,8 +286,6 @@ _az_RETURN_IF_FAILED(az_http_request_append_header(
   _az_RETURN_IF_FAILED(
       az_http_request_append_header(&request, AZ_HTTP_HEADER_CONTENT_LENGTH, content_length_span));
 
-  //_az_RETURN_IF_FAILED(
-  //    az_http_request_append_header(&request, AZ_HTTP_HEADER_CONNECTION, AZ_HTTP_CONNECTION_CLOSE));
 
   //_az_RETURN_IF_FAILED(
   //      az_http_request_append_header(&request, AZ_HTTP_HEADER_HOST, ref_client->_internal.endpoint));
@@ -302,6 +307,5 @@ _az_RETURN_IF_FAILED(az_http_request_append_header(
   az_http_request_get_header(&request, 12, &header_name, &header_value);
 
   return az_http_pipeline_process(&ref_client->_internal.pipeline, &request, ref_response);
-
 }
 

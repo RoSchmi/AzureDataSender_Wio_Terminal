@@ -21,8 +21,7 @@ class OnOffTableEntity : public TableEntity
            az_span SampleTime;          
            az_span TimeFromLast;
             
-           PropertyClass();
-           //PropertyClass(az_span RowKey, az_span PartitionKey);  
+           PropertyClass();   
 
         };
         

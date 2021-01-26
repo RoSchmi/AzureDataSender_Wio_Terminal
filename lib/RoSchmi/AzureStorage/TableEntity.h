@@ -5,16 +5,6 @@
 #ifndef _TABLE_ENTITY_H_
 #define _TABLE_ENTITY_H_
 
-//az_span PartitionKey; 
-//az_span   RowKey;
-//az_span   ETag;
-//DateTime TimeStamp;
-//static bool DisablePropertyResolverCache;
-
-//az_span JsonString = az_span_create_from_str((char *)"");
-
-//EntityProperty * Properties;
-
 class TableEntity
 {
 

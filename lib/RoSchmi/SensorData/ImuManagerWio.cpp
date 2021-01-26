@@ -4,8 +4,6 @@
 
 ImuSampleValueSet sampleSet;
 
-
-
 float averageX = 0;
 float averageY = 0;
 float averageZ = 0;
@@ -16,11 +14,6 @@ ImuManagerWio::ImuManagerWio()
 void ImuManagerWio::begin()
 {}
 
-/*
-ImuSampleValues   ImuManagerWio::GetStates()
-{
-}
-*/
 void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
 {
     if (currentIndex == IMU_ARRAY_ELEMENT_COUNT - 1)
@@ -43,8 +36,7 @@ void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
     Serial.println(averageX);
     Serial.println(averageY);
     Serial.println(averageZ);
-    Serial.println("");
-    
+    Serial.println("");  
 }
 
 float ImuManagerWio::floatingAverage(ImuSampleValueSet sampleSet, int arrayElementCnt, char axis)
@@ -76,8 +68,7 @@ float ImuManagerWio::floatingAverage(ImuSampleValueSet sampleSet, int arrayEleme
                     {
                         Serial.println("Error in ImuManagerWio");
                         delay(1000);
-                    }
-                                     
+                    }                                   
             }
         }
     }   
@@ -96,7 +87,8 @@ ImuSampleValues ImuManagerWio::GetLastImuReadings()
 
 float ImuManagerWio::GetVibrationValue()
 {
-    // First tests -- doesn't wor well
+    // First tests -- doesn't work well
+    // Have to find a better way to measure vibration
 
     ImuSampleValueSet averagedSampleSet;
 
@@ -136,6 +128,3 @@ void ImuManagerWio::SetActive()
 {
     isActive = true;
 }
-
-
-

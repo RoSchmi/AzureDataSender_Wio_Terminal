@@ -3,7 +3,7 @@
 #include <AzureStorage/TableEntity.h>
 
         
-        //EntityProperty * Properties;
+        
 
 // Your entity type must expose a parameter-less constructor
         OnOffTableEntity::OnOffTableEntity() { }

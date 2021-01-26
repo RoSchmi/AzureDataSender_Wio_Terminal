@@ -424,7 +424,7 @@ WiFi.begin(ssid, password);
 if (!WiFi.enableSTA(true))
 {
   #if WORK_WITH_WATCHDOG == 1   
-    int timeout = SAMCrashMonitor::enableWatchdog(4000);
+    __unused int timeout = SAMCrashMonitor::enableWatchdog(4000);
   #endif
 
   while (true)
@@ -476,7 +476,7 @@ if (!WiFi.enableSTA(true))
   IPAddress dnsServerIp = WiFi.dnsIP();
    
 // Wait for 1500 ms
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 4; i++)
   {
     delay(500);
     #if WORK_WITH_WATCHDOG == 1
