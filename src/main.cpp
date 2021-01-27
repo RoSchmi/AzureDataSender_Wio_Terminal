@@ -55,6 +55,7 @@
 #include "SensorData/OnOffDataContainerWio.h"
 #include "SensorData/OnOffSwitcherWio.h"
 #include "SensorData/ImuManagerWio.h"
+#include "SensorData/AnalogSensorMgr.h"
 
 #include <az_wioterminal_roschmi.h> 
 
@@ -110,24 +111,13 @@ const bool augmentTableNameWithYear = true;
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
 int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
 
-// Array to retrieve spaces with different length
-char PROGMEM spacesArray[13][13] = {  "", 
-                                      " ", 
-                                      "  ", 
-                                      "   ", 
-                                      "    ", 
-                                      "     ", 
-                                      "      ", 
-                                      "       ", 
-                                      "        ", 
-                                      "         ", 
-                                      "          ", 
-                                      "           ",  
-                                      "            "};
-
 DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
+AnalogSensorMgr analogSensorMgr(MAGIC_NUMBER_INVALID);
+
 OnOffDataContainerWio onOffDataContainer;
+
+
 
 OnOffSwitcherWio onOffSwitcherWio;
 
@@ -138,7 +128,16 @@ LIS3DHTR<TwoWire> lis;
 #define DHTPIN 0
 #define DHTTYPE DHT22
 
+//DHT dht(DHTPIN, DHTTYPE, 20);
 DHT dht(DHTPIN, DHTTYPE);
+
+//uint32_t lastDhtReadTime = 0;
+//float lastDhtTemperaturRead = MAGIC_NUMBER_INVALID;
+//float lastDhtHumidityRead = MAGIC_NUMBER_INVALID;
+
+//DHT dht(DHTPIN, DHTTYPE, 15);
+
+//DHT dht(DHTPIN, DHTTYPE);
 
 TFT_eSPI tft;
 int current_text_line = 0;
@@ -166,7 +165,8 @@ volatile uint32_t previousNtpMillis = 0;
 volatile uint32_t previousSensorReadMillis = 0;
 
 uint32_t ntpUpdateInterval = 60000;
-uint32_t analogSensorReadInterval = 100;
+
+//uint32_t analogSensorReadInterval = 100;
 
 char timeServer[] = "pool.ntp.org"; // external NTP server e.g. better pool.ntp.org
 unsigned int localPort = 2390;      // local port to listen for UDP packets
@@ -208,6 +208,23 @@ X509Certificate myX509Certificate = baltimore_root_ca;
 static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
 CloudStorageAccount myCloudStorageAccount(AZURE_CONFIG_ACCOUNT_NAME, AZURE_CONFIG_ACCOUNT_KEY, UseHttps_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
+
+// Array to retrieve spaces with different length
+char PROGMEM spacesArray[13][13] = {  "", 
+                                      " ", 
+                                      "  ", 
+                                      "   ", 
+                                      "    ", 
+                                      "     ", 
+                                      "      ", 
+                                      "       ", 
+                                      "        ", 
+                                      "         ", 
+                                      "          ", 
+                                      "           ",  
+                                      "            "};
+
+
 
 static void button_handler_right() 
 {
@@ -255,7 +272,7 @@ void lcd_log_line(char* line)
 unsigned long getNTPtime();
 unsigned long sendNTPpacket(const char* address);
 String floToStr(float value);
-float ReadAnalogSensor(int pAin);
+float ReadAnalogSensor(int pSensorIndex);
 DateTime actualizeSysTimeFromNtp();
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime);
 az_http_status_code  createTable(CloudStorageAccount * myCloudStorageAccountPtr, X509Certificate myX509Certificate, const char * tableName);
@@ -500,10 +517,11 @@ if (!WiFi.enableSTA(true))
   lcd_log_line(buf);
   
   ntpUpdateInterval =  (NTP_UPDATE_INTERVAL_MINUTES < 1 ? 1 : NTP_UPDATE_INTERVAL_MINUTES) * 60 * 1000;
+
+  // Set SensorReadInterval for all sensors to value defined in config.h (limited from 1 sec to 4 hours)
+  analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 1 ? 1 : ANALOG_SENSOR_READ_INTERVAL_SECONDS > 14400 ? 14400: ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
-  analogSensorReadInterval =  ANALOG_SENSOR_READ_INTERVAL_MILLIS < 10 ? 10 : ANALOG_SENSOR_READ_INTERVAL_MILLIS > 5000 ? 5000: ANALOG_SENSOR_READ_INTERVAL_MILLIS;                                                                                     // not below 5 min           
-     
-  
+
   #if WORK_WITH_WATCHDOG == 1
     SAMCrashMonitor::iAmAlive();
   #endif
@@ -646,6 +664,8 @@ void loop()
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
+
+      
       
       // Check if automatic OnOfSwitcher has toggled (used to simulate on/off changes)
       // and accordingly change the state of one representation (here index 2) in onOffDataContainer
@@ -938,10 +958,12 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     for (int i = 0; i < 4; i++)
     {
         // 999.9 is invalid, 1831.8 is invalid when tempatures are expressed in Fahrenheit
+        /*
         if (strcmp(valueStringArray[i], "999.9") == 0 || strcmp(valueStringArray[i], "1831.8") == 0)
         {
             strcpy(valueStringArray[i], "--.-");
         }
+        */
     }
 
     int charCounts[4];
@@ -1152,44 +1174,63 @@ String floToStr(float value)
   return String(buf);
 }
 
-float ReadAnalogSensor(int pAin)
+float ReadAnalogSensor(int pSensorIndex)
 {
 #ifndef USE_SIMULATED_SENSORVALUES
             // Use values read from an analog source
             // Change the function for each sensor to your needs
 
             double theRead = MAGIC_NUMBER_INVALID;
-            switch (pAin)
-            {
+
+            if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+            {                     
+              switch (pSensorIndex)
+              {
                 case 0:
-                    {   
-                        // Take theRead == nan or (nearly) exactly 0.0 as invalid
-                        // (if no sensor is connected the function returns 0) 
-                        theRead = dht.readTemperature();
-                        if (isnan(theRead) || (theRead > - 0.00001 && theRead < 0.00001))
-                        {                         
-                          theRead = MAGIC_NUMBER_INVALID;                      
-                        }
-                        else
+                    {
+                        float temp_hum_val[2] = {0};
+                        if (!dht.readTempAndHumidity(temp_hum_val))
                         {
-                          theRead += SENSOR_1_OFFSET;
-                        }
+                            analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, temp_hum_val[1], temp_hum_val[0], MAGIC_NUMBER_INVALID);
+                            
+                            // In this special case we set the values for the next sensor too
+                            // since both values were read with the 'dht.readTempAndHumidity(...)' command
+                            //analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, temp_hum_val[1], temp_hum_val[0], MAGIC_NUMBER_INVALID);
+
+                            theRead = temp_hum_val[1];
+                            // Take theRead (nearly) 0.0 as invalid
+                            // (if no sensor is connected the function returns 0)                        
+                            if (!(theRead > - 0.00001 && theRead < 0.00001))
+                            {      
+                                theRead += SENSOR_1_OFFSET;                                                       
+                            }
+                            else
+                            {
+                              theRead = MAGIC_NUMBER_INVALID;
+                            }                            
+                        }                                                           
                     }
                     break;
 
                 case 1:
                     {
-                        // Take theRead for temperature == nan or (nearly) exactly 0.0 as invalid
-                        // (if no sensor is connected the function returns 0)                        
-                        theRead = dht.readTemperature();         
-                        if (isnan(theRead) || (theRead > - 0.00001 && theRead < 0.00001))
-                        {                         
-                          theRead = MAGIC_NUMBER_INVALID;                         
-                        }
-                        else
-                        {                        
-                          theRead = dht.readHumidity();                        
-                        }
+                      // Here we look if the temperature sensor was updated in this loop
+                      AnalogSensor tempSensor = analogSensorMgr.GetSensorDates(0);
+                      if (tempSensor.LastReadTime.operator==(dateTimeUTCNow))
+                      {
+                          analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, tempSensor.Value_1, tempSensor.Value_2, MAGIC_NUMBER_INVALID);
+                          theRead = tempSensor.Value_2;
+                            // Take theRead (nearly) 0.0 as invalid
+                            // (if no sensor is connected the function returns 0)                        
+                            if (!(theRead > - 0.00001 && theRead < 0.00001))
+                            {      
+                                theRead += SENSOR_2_OFFSET;                                                       
+                            }
+                            else
+                            {
+                              theRead = MAGIC_NUMBER_INVALID;
+                            }                          
+                      }                
                     }
                     break;
                 case 2:
@@ -1230,6 +1271,7 @@ float ReadAnalogSensor(int pAin)
                     } 
                     */
                     break;
+              }
             }
             theRead = isnan(theRead) ? MAGIC_NUMBER_INVALID : theRead;
             return theRead ;

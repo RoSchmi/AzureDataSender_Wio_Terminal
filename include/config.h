@@ -55,9 +55,9 @@
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
-#define ANALOG_SENSOR_READ_INTERVAL_MILLIS 1000   // Analog sensors are read with this interval                                      
+#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 2   // Analog sensors are read with this interval                                      
 
-#define WORK_WITH_WATCHDOG 1                 // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 0                // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
 #define REBOOT_AFTER_FAILED_UPLOAD 1         // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
