@@ -117,8 +117,6 @@ AnalogSensorMgr analogSensorMgr(MAGIC_NUMBER_INVALID);
 
 OnOffDataContainerWio onOffDataContainer;
 
-
-
 OnOffSwitcherWio onOffSwitcherWio;
 
 ImuManagerWio imuManagerWio;
@@ -128,16 +126,10 @@ LIS3DHTR<TwoWire> lis;
 #define DHTPIN 0
 #define DHTTYPE DHT22
 
-//DHT dht(DHTPIN, DHTTYPE, 20);
-DHT dht(DHTPIN, DHTTYPE);
-
-//uint32_t lastDhtReadTime = 0;
-//float lastDhtTemperaturRead = MAGIC_NUMBER_INVALID;
-//float lastDhtHumidityRead = MAGIC_NUMBER_INVALID;
-
-//DHT dht(DHTPIN, DHTTYPE, 15);
-
-//DHT dht(DHTPIN, DHTTYPE);
+// In the driver the default third parameter (Count) is 25
+// This didn't work when the code was compiled in release mode
+// I test out that a value of 13 was o.k. for dubug mode and release mode 
+DHT dht(DHTPIN, DHTTYPE, 13);
 
 TFT_eSPI tft;
 int current_text_line = 0;
@@ -165,8 +157,6 @@ volatile uint32_t previousNtpMillis = 0;
 volatile uint32_t previousSensorReadMillis = 0;
 
 uint32_t ntpUpdateInterval = 60000;
-
-//uint32_t analogSensorReadInterval = 100;
 
 char timeServer[] = "pool.ntp.org"; // external NTP server e.g. better pool.ntp.org
 unsigned int localPort = 2390;      // local port to listen for UDP packets
@@ -319,8 +309,6 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(BUTTON_2), button_handler_mid, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON_3), button_handler_left, CHANGE);
 
-
-  
   onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
   // Initialize State of 4 On/Off-sensor representations 
   // and of the inverter flags (Application specific)
@@ -521,6 +509,10 @@ if (!WiFi.enableSTA(true))
   // Set SensorReadInterval for all sensors to value defined in config.h (limited from 1 sec to 4 hours)
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 1 ? 1 : ANALOG_SENSOR_READ_INTERVAL_SECONDS > 14400 ? 14400: ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
+  // Set SensorReadInterval different for sensors index 2 and 3
+  analogSensorMgr.SetReadInterval(2, 1);
+  analogSensorMgr.SetReadInterval(3, 1);
+
 
   #if WORK_WITH_WATCHDOG == 1
     SAMCrashMonitor::iAmAlive();
@@ -958,12 +950,12 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     for (int i = 0; i < 4; i++)
     {
         // 999.9 is invalid, 1831.8 is invalid when tempatures are expressed in Fahrenheit
-        /*
+        
         if (strcmp(valueStringArray[i], "999.9") == 0 || strcmp(valueStringArray[i], "1831.8") == 0)
         {
             strcpy(valueStringArray[i], "--.-");
         }
-        */
+        
     }
 
     int charCounts[4];
@@ -1193,10 +1185,6 @@ float ReadAnalogSensor(int pSensorIndex)
                         {
                             analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, temp_hum_val[1], temp_hum_val[0], MAGIC_NUMBER_INVALID);
                             
-                            // In this special case we set the values for the next sensor too
-                            // since both values were read with the 'dht.readTempAndHumidity(...)' command
-                            //analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, temp_hum_val[1], temp_hum_val[0], MAGIC_NUMBER_INVALID);
-
                             theRead = temp_hum_val[1];
                             // Take theRead (nearly) 0.0 as invalid
                             // (if no sensor is connected the function returns 0)                        
@@ -1215,6 +1203,7 @@ float ReadAnalogSensor(int pSensorIndex)
                 case 1:
                     {
                       // Here we look if the temperature sensor was updated in this loop
+                      // If yes, we can get the measured humidity value from the index 0 sensor
                       AnalogSensor tempSensor = analogSensorMgr.GetSensorDates(0);
                       if (tempSensor.LastReadTime.operator==(dateTimeUTCNow))
                       {
@@ -1237,29 +1226,30 @@ float ReadAnalogSensor(int pSensorIndex)
                     {
                         // Here we do not send a sensor value but the state of the upload counter
                         // Upload counter, limited to max. value of 1399
-                        theRead = (insertCounterAnalogTable % 1399) / 10.0 ;
-                                                
-                        /*
+                        //theRead = (insertCounterAnalogTable % 1399) / 10.0 ;
+
+                        // Alternative                  
+                        
                         // Read the light sensor (not used here, collumn is used as upload counter)
                         theRead = analogRead(WIO_LIGHT);
                         theRead = map(theRead, 0, 1023, 0, 100);
                         theRead = theRead < 0 ? 0 : theRead > 100 ? 100 : theRead;
-                        */                                            
+                                                                    
                     }
                     break;
                 case 3:
-                                      
+                    /*                
                     {
                         // Here we do not send a sensor value but the last reset cause
                         // Read the last reset cause for dignostic purpose 
                         theRead = lastResetCause;                        
                     }
-                    
+                    */
 
 
                     // Read the accelerometer (not used here)
                     // First experiments, don't work well
-                    /*
+                    
                     {
                         ImuSampleValues sampleValues;
                         sampleValues.X_Read = lis.getAccelerationX();
@@ -1269,11 +1259,10 @@ float ReadAnalogSensor(int pSensorIndex)
 
                         theRead = imuManagerWio.GetVibrationValue();                                                                 
                     } 
-                    */
+                    
                     break;
               }
-            }
-            theRead = isnan(theRead) ? MAGIC_NUMBER_INVALID : theRead;
+            }          
             return theRead ;
 #endif
 
