@@ -1,6 +1,4 @@
-#include <Arduino.h>
 #include "ImuManagerWio.h"
-//#include "DateTime.h"
 
 ImuSampleValueSet sampleSet;
 

@@ -24,8 +24,6 @@
  * SOFTWARE.
  */
 
-#include <Arduino.h>
-#include <DateTime.h>
 #include "Time/Rs_time_helpers.h"
 
 Rs_time_helpers::Rs_time_helpers() { }

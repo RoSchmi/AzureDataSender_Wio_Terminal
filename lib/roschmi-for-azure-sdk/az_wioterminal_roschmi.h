@@ -1,6 +1,16 @@
-#include <HTTPClient.h>
 #include <Arduino.h>
-#include <azure/core/az_http_transport.h>
+#include <stdlib.h>
+#include <string.h>
+#include "azure/core/az_span.h"
+#include "azure/core/az_http_transport.h"
+#include "azure/core/az_platform.h"
+#include "azure/core/az_http.h"
+#include <azure/core/az_result.h>
+#include <azure/core/internal/az_result_internal.h>
+#include <azure/core/az_span.h>
+#include <azure/core/internal/az_span_internal.h>
+
+#include "HTTPClient.h"
 
 #ifndef _AZ_WIO_TERMINAL_ROSCHMI_H_
 #define _AZ_WIO_TERMINAL_ROSCHMI_H_

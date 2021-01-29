@@ -1,10 +1,6 @@
 #include <AzureStorage/OnOffTableEntity.h>
-#include <AzureStorage/TableEntityProperty.h>
-#include <AzureStorage/TableEntity.h>
 
-        
-        
-
+      
 // Your entity type must expose a parameter-less constructor
         OnOffTableEntity::OnOffTableEntity() { }
 

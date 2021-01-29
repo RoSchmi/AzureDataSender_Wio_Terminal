@@ -1,20 +1,5 @@
-#include <Arduino.h>
-#include <AzureStorage/CloudStorageAccount.h>
-#include <HTTPClient.h>
-#include <AzureStorage/TableClient.h>
-#include <DateTime.h>
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <Encryption/RoSchmi_encryption_helpers.h>
-#include <roschmi_az_storage_tables.h>
-#include <Time/Rs_time_helpers.h>
 
-#include <AzureStorage/TableEntityProperty.h>
-#include <AzureStorage/TableEntity.h>
-
-#include <azure/core/az_span.h>
-#include <azure/core/internal/az_http_internal.h>
+#include "AzureStorage/TableClient.h"
 
 WiFiClient * _wifiClient;
 

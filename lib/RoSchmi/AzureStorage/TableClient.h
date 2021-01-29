@@ -1,18 +1,21 @@
 #include <Arduino.h>
-#include <WiFiClientSecure.h>
-#include <HTTPClient.h>
+#include "WiFiClientSecure.h"
+#include "HTTPClient.h"
 #include "DateTime.h"
 
 #include "mbedtls/md.h"
 #include "mbedtls/md5.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
-#include <azure/core/az_http.h>
-#include <Time/SysTime.h>
-#include <AzureStorage/CloudStorageAccount.h>
-#include <AzureStorage/TableEntity.h>
+#include "azure/core/az_http.h"
+#include "Time/SysTime.h"
+#include "Time/Rs_time_helpers.h"
+#include "AzureStorage/CloudStorageAccount.h"
+#include "AzureStorage/TableEntity.h"
+#include "Encryption/RoSchmi_encryption_helpers.h"
 
-#include <az_wioterminal_roschmi.h>
+#include "roschmi_az_storage_tables.h"
+#include "az_wioterminal_roschmi.h"
 
 #ifndef _TABLECLIENT_H_
 #define _TABLECLIENT_H_

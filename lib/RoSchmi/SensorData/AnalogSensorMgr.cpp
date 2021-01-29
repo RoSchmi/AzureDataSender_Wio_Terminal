@@ -1,7 +1,5 @@
-#include <Arduino.h>
 #include "AnalogSensorMgr.h"
-#include "DateTime.h"
- 
+
  
  AnalogSensor readValues[SENSOR_COUNT];
  float MagicNumberInvalid = 999.9;

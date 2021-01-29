@@ -1,9 +1,5 @@
 #include <AzureStorage/AnalogTableEntity.h>
-#include <AzureStorage/TableEntityProperty.h>
-#include <AzureStorage/TableEntity.h>
-#include <azure/core/az_span.h>
-
-        
+       
 // Your entity type must expose a parameter-less constructor
         AnalogTableEntity::AnalogTableEntity() { }
 

@@ -1,6 +1,4 @@
-#include <Arduino.h>
 #include <AzureStorage/TableEntityProperty.h>
-#include <azure/core/az_span.h>
 
 EntityProperty TableEntityProperty(char * pName, char * pValue, char * pType)
 {

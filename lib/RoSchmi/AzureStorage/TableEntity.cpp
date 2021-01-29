@@ -1,6 +1,3 @@
-#include <AzureStorage/TableEntityProperty.h>
-#include <azure/core/az_span.h>
-#include <DateTime.h>
 #include <AzureStorage/TableEntity.h>
   
 az_span     ETag;

@@ -33,31 +33,31 @@
 
 
 #include <Arduino.h>
-#include <config.h>
-#include <config_secret.h>
+#include "config.h"
+#include "config_secret.h"
 
-#include <AzureStorage/CloudStorageAccount.h>
-#include <AzureStorage/TableClient.h>
-#include <AzureStorage/TableEntityProperty.h>
-#include <AzureStorage/TableEntity.h>
-#include <AzureStorage/AnalogTableEntity.h>
-#include <AzureStorage/OnOffTableEntity.h>
+#include "AzureStorage/CloudStorageAccount.h"
+#include "AzureStorage/TableClient.h"
+#include "AzureStorage/TableEntityProperty.h"
+#include "AzureStorage/TableEntity.h"
+#include "AzureStorage/AnalogTableEntity.h"
+#include "AzureStorage/OnOffTableEntity.h"
 
-#include <rpcWiFi.h>
+#include "rpcWiFi.h"
 
 #include "SAMCrashMonitor.h"
 #include "DateTime.h"
 #include <time.h>
 
-#include <Time/SysTime.h>
+#include "Time/SysTime.h"
 
-#include <SensorData/DataContainerWio.h>
+#include "SensorData/DataContainerWio.h"
 #include "SensorData/OnOffDataContainerWio.h"
 #include "SensorData/OnOffSwitcherWio.h"
 #include "SensorData/ImuManagerWio.h"
 #include "SensorData/AnalogSensorMgr.h"
 
-#include <az_wioterminal_roschmi.h> 
+#include "az_wioterminal_roschmi.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,15 +71,15 @@
 #include "mbedtls/sha256.h"
 
 #include "TFT_eSPI.h"
-#include "Free_Fonts.h" //include the header file
+#include "Free_Fonts.h" 
 
-#include <azure/core/az_platform.h>
-#include <azure/core/az_http.h>
-#include <azure/core/az_http_transport.h>
-#include <azure/core/az_result.h>
-#include <azure/core/az_config.h>
-#include <azure/core/az_context.h>
-#include <azure/core/az_span.h>
+#include "azure/core/az_platform.h"
+#include "azure/core/az_http.h"
+#include "azure/core/az_http_transport.h"
+#include "azure/core/az_result.h"
+#include "azure/core/az_config.h"
+#include "azure/core/az_context.h"
+#include "azure/core/az_span.h"
 
 //#include <azure/core/az_json.h>
 //#include <azure/iot/az_iot_common.h>
@@ -323,7 +323,7 @@ void setup()
   onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 60 sec
   onOffSwitcherWio.SetInactive();
   //onOffSwitcherWio.SetActive();
-  
+
   lcd_log_line((char *)"Start - Disable watchdog.");
   SAMCrashMonitor::begin();
 
@@ -572,7 +572,8 @@ if (!WiFi.enableSTA(true))
       SAMCrashMonitor::iAmAlive();
     #endif
   }
-  
+
+
   // Clear screen
   current_text_line = 0;
   tft.fillScreen(screenColor);
@@ -657,8 +658,6 @@ void loop()
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
 
-      
-      
       // Check if automatic OnOfSwitcher has toggled (used to simulate on/off changes)
       // and accordingly change the state of one representation (here index 2) in onOffDataContainer
       if (onOffSwitcherWio.hasToggled(dateTimeUTCNow))

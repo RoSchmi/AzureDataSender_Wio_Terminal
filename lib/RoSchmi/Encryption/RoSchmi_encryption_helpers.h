@@ -1,11 +1,9 @@
 #include <Arduino.h>
 
-
 #include "mbedtls/md.h"
 #include "mbedtls/md5.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/sha256.h"
-
 
 #ifndef _ROSCHMI_ENCRYPTION_HELPERS_H_
 #define _ROSCHMI_ENCRYPTION_HELPERS_H_

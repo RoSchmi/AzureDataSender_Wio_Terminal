@@ -1,6 +1,4 @@
-#include <Arduino.h>
 #include "OnOffDataContainerWio.h"
-#include "DateTime.h"
 
 OnOffSampleValueSet onOffSampleValueSet;
 

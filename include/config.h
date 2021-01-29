@@ -29,37 +29,37 @@
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
 // max length in this App is 45
 
-#define ANALOG_TABLENAME "AnalogWorkValues"     // Name of the Azure Table to store 4 analog Values max length = 45
+#define ANALOG_TABLENAME "AnalogValuesX"     // Name of the Azure Table to store 4 analog Values max length = 45
+
+                                               // Names of tables to be created in your Azure Storage Account
+                                               // Per default the names are augmented with the actual year in this App
+#define ON_OFF_TABLENAME_01 "OnOffx01x"          // Name of the 1. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_02 "OnOffx02x"          // Name of the 2. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_03 "OnOffx03x"          // Name of the 3. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45 
 
 #define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Wio Terminal screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
 #define ANALOG_SENSOR_03_LABEL "Light"
 #define ANALOG_SENSOR_04_LABEL "Movement"
 
-                                               // Names of tables to be created in your Azure Storage Account
-                                               // Per default the names are augmented with the actual year in this App
-#define ON_OFF_TABLENAME_01 "Button1"          // Name of the 1. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_02 "Button2"          // Name of the 2. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_03 "Button3"          // Name of the 3. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_04 "Button4"          // Name of the 4. On/Off Table  max length = 45                  
-
 #define INVALIDATEINTERVAL_MINUTES 10   // Invalidateinterval in minutes 
                                         // (limited to values between 1 - 60)
                                         // (Sensor readings are considered to be invalid if not successsfully
                                         // read within this timespan)
 
-#define NTP_UPDATE_INTERVAL_MINUTES 5   //  With this interval sytem time is updated via NTP
+#define NTP_UPDATE_INTERVAL_MINUTES 20   //  With this interval sytem time is updated via NTP
                                         //  with internet time (is limited to be not below 1 min)
 
-#define UPDATE_TIME_FROM_AZURE_RESPONSE 0  // 1 = yes, 0 = no. SystemTime is updated from the Post response from Azure.
+#define UPDATE_TIME_FROM_AZURE_RESPONSE 1  // 1 = yes, 0 = no. SystemTime is updated from the Post response from Azure.
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
-#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 2   // Analog sensors are read with this interval                                      
+#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 2   // Analog sensors are read with this interval  (limited 1 to 14400)                                    
 
 #define WORK_WITH_WATCHDOG 0                // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 1         // 1 = yes, 0 = no, Because of possible bug/memoryleak the App doesn't recover
+#define REBOOT_AFTER_FAILED_UPLOAD 0         // 1 = yes, 0 = no, Because of possible bug in the App or the firmware the App doesn't recover
                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 
@@ -101,7 +101,7 @@
 //#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
                                        // if activated we select test values, not sinus curves
 
-#define SENSOR_1_OFFSET    -0.1        // Calibration Offset to sensor No 1
+#define SENSOR_1_OFFSET     0.0        // Calibration Offset to sensor No 1
 #define SENSOR_2_OFFSET     0.0        // Calibration Offset to sensor No 2
 #define SENSOR_3_OFFSET     0.0        // Calibration Offset to sensor No 3
 #define SENSOR_4_OFFSET     0.0        // Calibration Offset to sensor No 4

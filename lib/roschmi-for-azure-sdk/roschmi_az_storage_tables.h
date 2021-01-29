@@ -16,13 +16,21 @@
 #define _ROSCHMI_AZ_STORAGE_TABLES_H
 
 #include <azure/core/az_config.h>
+#include <azure/core/internal/az_config_internal.h>
 #include <azure/core/az_context.h>
 #include <azure/core/az_credentials.h>
+#include <azure/core/internal/az_credentials_internal.h>
 #include <azure/core/az_http.h>
 #include <azure/core/az_http_transport.h>
 #include <azure/core/az_result.h>
+#include <azure/core/internal/az_result_internal.h>
+#include <azure/core/Internal/az_retry_internal.h>
 #include <azure/core/az_span.h>
+#include <azure/core/internal/az_span_internal.h>
 #include <azure/core/internal/az_http_internal.h>
+#include <azure/core/az_precondition.h>
+#include <azure/core/internal/az_precondition_internal.h>
+
 
 #include <stdint.h>
 

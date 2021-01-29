@@ -1,11 +1,4 @@
-#include <Arduino.h>
-
 #include <Encryption/RoSchmi_encryption_helpers.h>
-
-#include "mbedtls/md.h"
-#include "mbedtls/md5.h"
-#include "mbedtls/base64.h"
-#include "mbedtls/sha256.h"
 
 
 // returns 0 if everthing worked o.k. returns 1 in case of some error

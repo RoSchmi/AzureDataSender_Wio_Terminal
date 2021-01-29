@@ -9,22 +9,11 @@
 // az_result az_storage_tables_upload(...);
 
 
-#include <azure/core/az_http.h>
-#include <azure/core/az_http_transport.h>
-#include <azure/core/az_json.h>
-#include <azure/core/az_precondition.h>
-#include <azure/core/internal/az_config_internal.h>
-#include <azure/core/internal/az_credentials_internal.h>
-#include <azure/core/internal/az_http_internal.h>
-#include <azure/core/internal/az_precondition_internal.h>
-#include <azure/core/internal/az_result_internal.h>
-#include <azure/core/Internal/az_retry_internal.h>
-#include <azure/core/internal/az_span_internal.h>
 #include <roschmi_az_storage_tables.h>
 
 #include <stddef.h>
 
-#include <azure/core/_az_cfg.h>
+
 
 enum
 {
@@ -34,16 +23,16 @@ enum
 static az_span const AZ_STORAGE_TABLES_HEADER_ACCEPT_TYPE
     = AZ_SPAN_LITERAL_FROM_STR("Accept");  
 
-static az_span const AZ_STORAGE_TABLES_HEADER_EXPECT_TYPE
+__unused static az_span const AZ_STORAGE_TABLES_HEADER_EXPECT_TYPE
     = AZ_SPAN_LITERAL_FROM_STR("Expect");
 
-static az_span const AZ_STORAGE_TABLES_HEADER_EXPECT_100_CONTINUE
+__unused  static az_span const AZ_STORAGE_TABLES_HEADER_EXPECT_100_CONTINUE
     = AZ_SPAN_LITERAL_FROM_STR("100-continue");
  
 static az_span const AZ_STORAGE_TABLES_HEADER_XMS_DATE
     = AZ_SPAN_LITERAL_FROM_STR("x-ms-date");
 
-static az_span const AZ_STORAGE_TABLES_HEADER_API_VERSION
+__unused  static az_span const AZ_STORAGE_TABLES_HEADER_API_VERSION
     = AZ_SPAN_LITERAL_FROM_STR("x-ms-version");
 
 static az_span const AZ_STORAGE_TABLES_HEADER_AUTHORIZATION
@@ -76,18 +65,18 @@ static az_span const AZ_HTTP_HEADER_CONTENT_TYPE = AZ_SPAN_LITERAL_FROM_STR("Con
 static az_span const AZ_HTTP_HEADER_ACCEPT_ENCODING
 = AZ_SPAN_LITERAL_FROM_STR("Accept-Encoding");
 
-static az_span const AZ_HTTP_ACCEPT_ENCODING_IDENTITY 
+__unused  static az_span const AZ_HTTP_ACCEPT_ENCODING_IDENTITY 
 = AZ_SPAN_LITERAL_FROM_STR("identity");
 
 static az_span const AZ_HTTP_ACCEPT_ENCODING_CHUNKED
     = AZ_SPAN_LITERAL_FROM_STR("chunked"); 
 
-static az_span const AZ_HTTP_HEADER_CONNECTION
+__unused  static az_span const AZ_HTTP_HEADER_CONNECTION
     = AZ_SPAN_LITERAL_FROM_STR("Connection");
 
-static az_span const AZ_HTTP_CONNECTION_CLOSE = AZ_SPAN_LITERAL_FROM_STR("Close");
+__unused static az_span const AZ_HTTP_CONNECTION_CLOSE = AZ_SPAN_LITERAL_FROM_STR("Close");
 
-static az_span const AZ_HTTP_HEADER_HOST
+__unused static az_span const AZ_HTTP_HEADER_HOST
     = AZ_SPAN_LITERAL_FROM_STR("Host");
 
 AZ_NODISCARD az_storage_tables_client_options az_storage_tables_client_options_default()
@@ -301,10 +290,10 @@ _az_RETURN_IF_FAILED(az_http_request_append_header(
   
   //RoSchmi
   // show how headers can be accessed
-  volatile size_t headerCount = az_http_request_headers_count(&request);
+  __unused  size_t headerCount = az_http_request_headers_count(&request);
   az_span header_name = { 0 };
   az_span header_value = { 0 };
-  az_http_request_get_header(&request, 12, &header_name, &header_value);
+  __unused  az_result getHeaderResult =  az_http_request_get_header(&request, 12, &header_name, &header_value);
 
   return az_http_pipeline_process(&ref_client->_internal.pipeline, &request, ref_response);
 }

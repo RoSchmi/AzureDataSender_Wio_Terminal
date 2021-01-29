@@ -1,8 +1,4 @@
-#include <Arduino.h>
 #include "DataContainerWio.h"
-//#include "math.h"
-//#include "stdlib.h"
-#include "DateTime.h"
 
 SampleValue DataContainerWio::checkedSampleValue(SampleValue inSampleValue, float lowerLimit, float upperLimit, float invalidateSubstitute, DateTime actDateTime, TimeSpan invalidateTime)
 {
