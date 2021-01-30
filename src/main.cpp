@@ -1270,7 +1270,7 @@ float ReadAnalogSensor(int pSensorIndex)
             // Here you can select that diagnostic values (for debugging)
             // are sent to your storage table
             double theRead = MAGIC_NUMBER_INVALID;
-            switch (pAin)
+            switch (pSensorIndex)
             {
                 case 0:
                     {
@@ -1301,19 +1301,19 @@ float ReadAnalogSensor(int pSensorIndex)
 
   
 
-  #elif
+        #endif
             // Only as an example we here return values which draw a sinus curve
             // Console.WriteLine("entering Read analog sensor");
             int frequDeterminer = 4;
             int y_offset = 1;
             // different frequency and y_offset for aIn_0 to aIn_3
-            if (pAin == 0)
+            if (pSensorIndex == 0)
             { frequDeterminer = 4; y_offset = 1; }
-            if (pAin == 1)
+            if (pSensorIndex == 1)
             { frequDeterminer = 8; y_offset = 10; }
-            if (pAin == 2)
+            if (pSensorIndex == 2)
             { frequDeterminer = 12; y_offset = 20; }
-            if (pAin == 3)
+            if (pSensorIndex == 3)
             { frequDeterminer = 16; y_offset = 30; }
              
             int secondsOnDayElapsed = dateTimeUTCNow.second() + dateTimeUTCNow.minute() * 60 + dateTimeUTCNow.hour() *60 *60;
@@ -1321,7 +1321,6 @@ float ReadAnalogSensor(int pSensorIndex)
             return roundf((float)25.0 * (float)sin(PI / 2.0 + (secondsOnDayElapsed * ((frequDeterminer * PI) / (float)86400)))) / 10  + y_offset;          
 
   #endif
-#endif
 }
 
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime)
