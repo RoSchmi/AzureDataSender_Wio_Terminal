@@ -1,7 +1,7 @@
 ### AzureDataSender_Wio_Terminal
 
 Transfer telemetry sensor data to Azure Storage Tables. App running on the Wio Terminal developed on PlatformIO using Arduino Code, Microsoft Azure C SDK.
-This is still work in progress, creating tables and inserting Entities is already working.
+
 
 ![Gallery](https://github.com/RoSchmi/AzureDataSender_Wio_Terminal/blob/master/pictures/Azure_Datasender_Wio_Terminal.png)
 
@@ -29,6 +29,6 @@ Open the file include/config.h and enter some settings (esp. the send interval, 
 
 Now you should be able to compile and deploy the App to the Wio Terminal. The App should automatically create a table in your Azure Storage Account and start to create new rows.
 
-This App is in process of development, not yet stable for long term usage.
+
 
 
