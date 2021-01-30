@@ -98,7 +98,7 @@
                                         // 0 = a log with actions is shown on the screen
 
 #define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
-#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
+//#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
                                        // if activated we select test values, not sinus curves
 
 #define SENSOR_1_OFFSET     0.0        // Calibration Offset to sensor No 1
