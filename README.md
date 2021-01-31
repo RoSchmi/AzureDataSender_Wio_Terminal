@@ -5,6 +5,11 @@ Transfer telemetry sensor data to Azure Storage Tables. App running on the Wio T
 
 ![Gallery](https://github.com/RoSchmi/AzureDataSender_Wio_Terminal/blob/master/pictures/Azure_Datasender_Wio_Terminal.png)
 
+See the detailed explantion of the project on www.hackster.io
+
+https://www.hackster.io/RoSchmi/wio-terminal-app-sending-sensor-data-to-azure-storage-tables-dbb08e
+
+and the video on Youtube:
 
 https://youtu.be/yVkcU8m84jY
 
