@@ -97,10 +97,10 @@ const char OnOffTableName_3[45] = ON_OFF_TABLENAME_03;
 const char OnOffTableName_4[45] = ON_OFF_TABLENAME_04;
 
 // The PartitionKey for the analog table may have a prefix to be distinguished, here: "Y2_" 
-const char * analogTablePartPrefix = (char *)"Y2_";
+const char * analogTablePartPrefix = (char *)ANALOG_TABLE_PART_PREFIX;
 
-// The PartitionKey for the On/Off-tables may have a prefix to be distinguished, here: "Y2_" 
-const char * onOffTablePartPrefix = (char *)"Y2_";
+// The PartitionKey for the On/Off-tables may have a prefix to be distinguished, here: "Y3_" 
+const char * onOffTablePartPrefix = (char *)ON_OFF_TABLE_PART_PREFIX;
 
 // The PartitinKey can be augmented with a string representing year and month (recommended)
 const bool augmentPartitionKey = true;

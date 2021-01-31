@@ -22,7 +22,7 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 10.0              // Sendinterval in minutes, in this interval data are sent to the Cloud                                       
+#define SENDINTERVAL_MINUTES 1.0              // Sendinterval in minutes, in this interval data are sent to the Cloud                                       
                                               // is limited to be not below 1 second
 
 // Names for Tables in Azure Account, please obey rules for Azure Tablenames (e.g. no underscore allowed)
@@ -31,12 +31,17 @@
 
 #define ANALOG_TABLENAME "AnalogValuesX"     // Name of the Azure Table to store 4 analog Values max length = 45
 
+#define ANALOG_TABLE_PART_PREFIX "Y2_"            // Prefix for PartitionKey of Analog Tables
+
+
                                                // Names of tables to be created in your Azure Storage Account
                                                // Per default the names are augmented with the actual year in this App
 #define ON_OFF_TABLENAME_01 "OnOffx01x"          // Name of the 1. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_02 "OnOffx02x"          // Name of the 2. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_03 "OnOffx03x"          // Name of the 3. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45 
+#define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45
+
+#define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables
 
 #define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Wio Terminal screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
@@ -57,9 +62,9 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_SECONDS 2   // Analog sensors are read with this interval  (limited 1 to 14400)                                    
 
-#define WORK_WITH_WATCHDOG 1               // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 0               // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 1         // 1 = yes, 0 = no, Because of possible bug in the App or the firmware the App doesn't recover
+#define REBOOT_AFTER_FAILED_UPLOAD 0         // 1 = yes, 0 = no, Because of possible bug in the App or the firmware the App doesn't recover
                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 
