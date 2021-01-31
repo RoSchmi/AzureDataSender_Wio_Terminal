@@ -320,7 +320,7 @@ void setup()
   }
   
   //Initialize OnOffSwitcher (for tests and simulation)
-  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 60 sec
+  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 60 min
   onOffSwitcherWio.SetInactive();
   //onOffSwitcherWio.SetActive();
 
@@ -573,7 +573,6 @@ if (!WiFi.enableSTA(true))
     #endif
   }
 
-
   // Clear screen
   current_text_line = 0;
   tft.fillScreen(screenColor);
@@ -665,7 +664,7 @@ void loop()
         bool state = onOffSwitcherWio.GetState();
         time_helpers.update(dateTimeUTCNow);
         int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
-        onOffDataContainer.SetNewOnOffValue(2, state, dateTimeUTCNow, timeZoneOffsetUTC);
+        onOffDataContainer.SetNewOnOffValue(0, state, dateTimeUTCNow, timeZoneOffsetUTC);
       }
       
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
@@ -735,7 +734,9 @@ void loop()
           partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
 
           // Create the RowKey (special format)
-          makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+          //makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+          makeRowKey(localTime, rowKey, &rowKeyLength);
+          
           rowKey = az_span_slice(rowKey, 0, rowKeyLength);
   
           // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
@@ -813,7 +814,9 @@ void loop()
               partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
 
               // Create the RowKey (special format)
-              makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+              //makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+              makeRowKey(localTime, rowKey, &rowKeyLength);
+              
               rowKey = az_span_slice(rowKey, 0, rowKeyLength);
   
               // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
@@ -1302,8 +1305,9 @@ float ReadAnalogSensor(int pSensorIndex)
   
 
         #endif
-            // Only as an example we here return values which draw a sinus curve
-            // Console.WriteLine("entering Read analog sensor");
+            
+            onOffSwitcherWio.SetActive();
+            // Only as an example we here return values which draw a sinus curve            
             int frequDeterminer = 4;
             int y_offset = 1;
             // different frequency and y_offset for aIn_0 to aIn_3
