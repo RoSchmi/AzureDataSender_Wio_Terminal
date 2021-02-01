@@ -127,7 +127,7 @@ bool OnOffDataContainerWio::One_hasToBeBeSent()
 {
     bool ret = false;
     for (int i = 0; i < PROPERTY_COUNT; i++)
-    {
+    { 
         ret = onOffSampleValueSet.OnOffSampleValues[i].hasToBeSent == true ? true : ret;
     }
     return ret;

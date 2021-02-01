@@ -170,7 +170,7 @@ bool sendResultState = true;
 
 uint32_t failedUploadCounter = 0;
 
-const int timeZoneOffset = (int)TIMEZONE;
+const int timeZoneOffset = (int)TIMEZONEOFFSET;
 const int dstOffset = (int)DSTOFFSET;
 
 unsigned long utcTime;
@@ -221,7 +221,7 @@ static void button_handler_right()
   int state = digitalRead(BUTTON_1);
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
-  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
   onOffDataContainer.SetNewOnOffValue(2, state == 0, utcNow, timeZoneOffsetUTC); 
 }
 
@@ -230,7 +230,7 @@ static void button_handler_mid()
   int state = digitalRead(BUTTON_2);
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
-  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
   onOffDataContainer.SetNewOnOffValue(1, state == 0, utcNow, timeZoneOffsetUTC);
 }
 
@@ -239,7 +239,7 @@ static void button_handler_left()
   int state = digitalRead(BUTTON_3);
   DateTime utcNow = sysTime.getTime();
   time_helpers.update(utcNow);
-  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+  int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
   onOffDataContainer.SetNewOnOffValue(0, state == 0, utcNow, timeZoneOffsetUTC);
 }
 
@@ -268,7 +268,7 @@ void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sam
 az_http_status_code  createTable(CloudStorageAccount * myCloudStorageAccountPtr, X509Certificate myX509Certificate, const char * tableName);
 az_http_status_code CreateTable( const char * tableName, ContType pContentType, AcceptType pAcceptType, ResponseType pResponseType, bool);
 az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccountPtr, X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag);
-void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_span outSpan, size_t *outSpanLength);
+void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, DateTime dateTime, az_span outSpan, size_t *outSpanLength);
 void makeRowKey(DateTime actDate, az_span outSpan, size_t *outSpanLength);
 void showDisplayFrame();
 void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool on_1,  bool on_2, bool on_3, bool on_4, bool sendResultState, uint32_t tryUpLoadCtr);
@@ -360,8 +360,8 @@ void setup()
 
   if (!(dstWeekday == -1 || dstMonth == - 1 || dstWeekOfMonth == -1 || DST_START_HOUR > 23 ? true : DST_START_HOUR < 0 ? true : false))
   {
-     time_helpers.ruleDST(DST_ON_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_START_HOUR, TIMEZONE + DSTOFFSET);
-     //time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, TIMEZONE + DSTOFFSET); // e.g last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset) 
+     time_helpers.ruleDST(DST_ON_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_START_HOUR, TIMEZONEOFFSET + DSTOFFSET);
+     //time_helpers.ruleDST("CEST", Last, Sun, Mar, 2, TIMEZONEOFFSET + DSTOFFSET); // e.g last sunday in march 2:00, timezone +120min (+1 GMT + 1h summertime offset) 
   }
   else
   {
@@ -373,8 +373,8 @@ void setup()
   dstWeekOfMonth = getWeekOfMonthNum(DST_STOP_WEEK_OF_MONTH);
   if (!(dstWeekday == -1 || dstMonth == - 1 || dstWeekOfMonth == -1 || DST_STOP_HOUR > 23 ? true : DST_STOP_HOUR < 0 ? true : false || !firstTimeZoneDef_is_Valid))
   {
-    time_helpers.ruleSTD(DST_OFF_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_STOP_HOUR, TIMEZONE);
-    //time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, TIMEZONE); // e.g. last sunday in october 3:00, timezone +60min (+1 GMT)
+    time_helpers.ruleSTD(DST_OFF_NAME, dstWeekOfMonth, dstWeekday, dstMonth, DST_STOP_HOUR, TIMEZONEOFFSET);
+    //time_helpers.ruleSTD("CET", Last, Sun, Oct, 3, TIMEZONEOFFSET); // e.g. last sunday in october 3:00, timezone +60min (+1 GMT)
     sprintf(buf, "Selected Timezone: %s", DST_OFF_NAME);
      lcd_log_line(buf);
   }
@@ -646,7 +646,7 @@ void loop()
       
       // Get offset in minutes between UTC and local time with consideration of DST
       time_helpers.update(dateTimeUTCNow);
-      int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+      int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
       DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
       // In the last 15 sec of each day we set a pulse to Off-State when we had On-State before
       bool isLast15SecondsOfDay = (localTime.hour() == 23 && localTime.minute() == 59 &&  localTime.second() > 45) ? true : false;
@@ -663,8 +663,9 @@ void loop()
       {
         bool state = onOffSwitcherWio.GetState();
         time_helpers.update(dateTimeUTCNow);
-        int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+        int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
         onOffDataContainer.SetNewOnOffValue(0, state, dateTimeUTCNow, timeZoneOffsetUTC);
+        onOffDataContainer.SetNewOnOffValue(1, !state, dateTimeUTCNow, timeZoneOffsetUTC);
       }
       
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
@@ -730,11 +731,10 @@ void loop()
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
   
           // Create the PartitionKey (special format)
-          makePartitionKey(analogTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
+          makePartitionKey(analogTablePartPrefix, augmentPartitionKey, localTime, partitionKey, &partitionKeyLength);
           partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
 
-          // Create the RowKey (special format)
-          //makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+          // Create the RowKey (special format)        
           makeRowKey(localTime, rowKey, &rowKeyLength);
           
           rowKey = az_span_slice(rowKey, 0, rowKeyLength);
@@ -810,11 +810,10 @@ void loop()
               OnOffPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"TimeFromLast", (char *) timefromLast, (char *)"Edm.String");
           
               // Create the PartitionKey (special format)
-              makePartitionKey(onOffTablePartPrefix, augmentPartitionKey, partitionKey, &partitionKeyLength);
+              makePartitionKey(onOffTablePartPrefix, augmentPartitionKey, localTime, partitionKey, &partitionKeyLength);
               partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
-
-              // Create the RowKey (special format)
-              //makeRowKey(dateTimeUTCNow, rowKey, &rowKeyLength);
+              
+              // Create the RowKey (special format)            
               makeRowKey(localTime, rowKey, &rowKeyLength);
               
               rowKey = az_span_slice(rowKey, 0, rowKeyLength);
@@ -987,7 +986,7 @@ void fillDisplayFrame(double an_1, double an_2, double an_3, double an_4, bool o
     
     dateTimeUTCNow = sysTime.getTime();
     time_helpers.update(dateTimeUTCNow);
-    int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONE + DSTOFFSET : TIMEZONE;
+    int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
     
     DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
     
@@ -1343,18 +1342,18 @@ void makeRowKey(DateTime actDate,  az_span outSpan, size_t *outSpanLength)
 {
   // formatting the RowKey (= reverseDate) this way to have the tables sorted with last added row upmost
   char rowKeyBuf[20] {0};
+
   sprintf(rowKeyBuf, "%4i%02i%02i%02i%02i%02i", (10000 - actDate.year()), (12 - actDate.month()), (31 - actDate.day()), (23 - actDate.hour()), (59 - actDate.minute()), (59 - actDate.second()));
   az_span retValue = az_span_create_from_str((char *)rowKeyBuf);
   az_span_copy(outSpan, retValue);
   *outSpanLength = retValue._internal.size;         
 }
 
-void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, az_span outSpan, size_t *outSpanLength)
+void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, DateTime dateTime, az_span outSpan, size_t *outSpanLength)
 {
-  // if wanted, augment with year and month (12 - month for right order)
-  DateTime dateTimeUTCNow = sysTime.getTime();                      
+  // if wanted, augment with year and month (12 - month for right order)                    
   char dateBuf[20] {0};
-  sprintf(dateBuf, "%s%d-%02d", partitionKeyprefix, (dateTimeUTCNow.year()), (12 - dateTimeUTCNow.month()));                  
+  sprintf(dateBuf, "%s%d-%02d", partitionKeyprefix, (dateTime.year()), (12 - dateTime.month()));                  
   az_span ret_1 = az_span_create_from_str((char *)dateBuf);
   az_span ret_2 = az_span_create_from_str((char *)partitionKeyprefix);                       
   if (augmentWithYear == true)

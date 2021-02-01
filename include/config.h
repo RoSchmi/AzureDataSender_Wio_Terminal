@@ -29,9 +29,9 @@
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
 // max length in this App is 45
 
-#define ANALOG_TABLENAME "AnalogValuesX"     // Name of the Azure Table to store 4 analog Values max length = 45
+#define ANALOG_TABLENAME "AnalogValuesX"          // Name of the Azure Table to store 4 analog Values max length = 45
 
-#define ANALOG_TABLE_PART_PREFIX "Y2_"            // Prefix for PartitionKey of Analog Tables
+#define ANALOG_TABLE_PART_PREFIX "Y2_"            // Prefix for PartitionKey of Analog Tables (default, no need to change)
 
 
                                                // Names of tables to be created in your Azure Storage Account
@@ -41,7 +41,7 @@
 #define ON_OFF_TABLENAME_03 "OnOffx03x"          // Name of the 3. On/Off Table  max length = 45
 #define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45
 
-#define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables
+#define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables (default, no need to change)
 
 #define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Wio Terminal screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
@@ -72,7 +72,7 @@
 // https://en.wikipedia.org/wiki/Daylight_saving_time_by_country
 // https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations
 
-#define TIMEZONE 60                 // TimeZone time difference to UTC in minutes
+#define TIMEZONEOFFSET 60           // TimeZone time difference to UTC in minutes
 #define DSTOFFSET 60                // Additional DaylightSaving Time offset in minutes
 
 #define  DST_ON_NAME                "CEST"
@@ -102,7 +102,7 @@
 #define SHOW_GRAPHIC_SCREEN 1           // 1 = A graphic screen with actual values is shown
                                         // 0 = a log with actions is shown on the screen
 
-#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
+//#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
 //#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
                                        // if activated we select test values, not sinus curves
 
