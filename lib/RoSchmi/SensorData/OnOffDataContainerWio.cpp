@@ -28,24 +28,24 @@ const char * tableName_2, const char * tableName_3, const char * tableName_4)
 // The hasToBeSent flag is set
 // If we have a new day (local time), a new OnTimeDay is calculated
 // If we have a new day the 'dayIsLocked' flag is cleared 
-void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTime time, int offsetUtcMinutes)
+void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTime pTimeUtc, int offsetUtcMinutes)
 {
     // change incoming state if inputInverter is active
     bool _state = onOffSampleValueSet.OnOffSampleValues[sensorIndex].inputInverter ? !state : state;
-    DateTime _localTime = time.operator+(TimeSpan(offsetUtcMinutes * 60));
+    DateTime _localTime = pTimeUtc.operator+(TimeSpan(offsetUtcMinutes * 60));
     DateTime _localTimeOfLastSwitch = onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime.operator+(TimeSpan(offsetUtcMinutes * 60));
-    TimeSpan _timeFromLast = time.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime);
+    TimeSpan _timeFromLast = pTimeUtc.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime);
     
     // only do anything if state has changed
-    if (_state != onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState)
-    {  
-        // if the day (local time) has changed we calculate a new OnTimeDay value
-        if (_localTimeOfLastSwitch.day() != _localTime.day())
+    //if (_state != onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState)
+    //{  
+        // if localTimeOf LastSwitch had reset in One_hasToBeSent
+        if (_localTimeOfLastSwitch == DateTime(_localTime.year(), _localTime.month(), _localTime.day(), 0, 0, 0))
         {
             // if we switch from true (on) to off (false) we calculate new OnTimeDay
             if (onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState == true)
             {
-                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = time.operator-(DateTime(time.year(), time.month(), time.day(), 0, 0, 0));
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = _localTime.operator-(DateTime(_localTime.year(), _localTime.month(), _localTime.day(), 0, 0, 0));
             }
             else
             {
@@ -59,7 +59,7 @@ void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTi
             if (onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState == true)
             {
                 onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay = 
-                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay.operator+(time.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime));
+                onOffSampleValueSet.OnOffSampleValues[sensorIndex].OnTimeDay.operator+(_localTime.operator-(onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime));
             }          
         }
         
@@ -67,9 +67,9 @@ void OnOffDataContainerWio::SetNewOnOffValue(int sensorIndex, bool state, DateTi
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState;               
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].actState = _state;
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].TimeFromLast = _timeFromLast.days() < 100 ? _timeFromLast : TimeSpan(0);
-        onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime = time;
+        onOffSampleValueSet.OnOffSampleValues[sensorIndex].LastSwitchTime = _localTime;
         onOffSampleValueSet.OnOffSampleValues[sensorIndex].hasToBeSent = true;
-    }
+    //}
 }
 
 void OnOffDataContainerWio::PresetOnOffState(int sensorIndex, bool state, bool lastState, DateTime time)
@@ -123,12 +123,26 @@ void OnOffDataContainerWio::Set_Year(int sensorIndex, int year)
     onOffSampleValueSet.OnOffSampleValues[sensorIndex].Year = year;
 }
 
-bool OnOffDataContainerWio::One_hasToBeBeSent()
+bool OnOffDataContainerWio::One_hasToBeBeSent(DateTime pLocalNow)
 {
     bool ret = false;
+    bool sendAllAtStartOfNewDay = false;
+
     for (int i = 0; i < PROPERTY_COUNT; i++)
     { 
         ret = onOffSampleValueSet.OnOffSampleValues[i].hasToBeSent == true ? true : ret;
+        sendAllAtStartOfNewDay = onOffSampleValueSet.OnOffSampleValues[i].LastSwitchTime.day() != pLocalNow.day() ? true : sendAllAtStartOfNewDay;  
+    }
+    if (sendAllAtStartOfNewDay)
+    {
+        for (int i = 0; i < PROPERTY_COUNT; i++)
+        { 
+            onOffSampleValueSet.OnOffSampleValues[i].hasToBeSent = true;
+            onOffSampleValueSet.OnOffSampleValues[i].OnTimeDay = TimeSpan(0);
+            // Set last switch time to start of day (00:00:00)
+            onOffSampleValueSet.OnOffSampleValues[i].LastSwitchTime = DateTime(pLocalNow.year(), pLocalNow.month(), pLocalNow.day(), 0, 0 , 0 );
+        }
+        ret = true;
     }
     return ret;
 }

@@ -669,7 +669,7 @@ void loop()
       }
       
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
-      if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent() || isLast15SecondsOfDay)
+      if (dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
       {    
         //Create some buffer
         char sampleTime[25] {0};    // Buffer to hold sampletime        

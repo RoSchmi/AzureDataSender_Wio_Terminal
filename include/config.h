@@ -22,24 +22,24 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account have to be set in the file config_secret.h 
 
-#define SENDINTERVAL_MINUTES 1.0              // Sendinterval in minutes, in this interval data are sent to the Cloud                                       
+#define SENDINTERVAL_MINUTES 0.2              // Sendinterval in minutes, in this interval data are sent to the Cloud                                       
                                               // is limited to be not below 1 second
 
 // Names for Tables in Azure Account, please obey rules for Azure Tablenames (e.g. no underscore allowed)
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
 // max length in this App is 45
 
-#define ANALOG_TABLENAME "AnalogValuesX"          // Name of the Azure Table to store 4 analog Values max length = 45
+#define ANALOG_TABLENAME "AnalogValuesXX"          // Name of the Azure Table to store 4 analog Values max length = 45
 
 #define ANALOG_TABLE_PART_PREFIX "Y2_"            // Prefix for PartitionKey of Analog Tables (default, no need to change)
 
 
                                                // Names of tables to be created in your Azure Storage Account
                                                // Per default the names are augmented with the actual year in this App
-#define ON_OFF_TABLENAME_01 "OnOffx01x"          // Name of the 1. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_02 "OnOffx02x"          // Name of the 2. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_03 "OnOffx03x"          // Name of the 3. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_01 "OnOffx01xx"          // Name of the 1. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_02 "OnOffx02xx"          // Name of the 2. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_03 "OnOffx03xx"          // Name of the 3. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_04 "OnOffx04xx"          // Name of the 4. On/Off Table  max length = 45
 
 #define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables (default, no need to change)
 
@@ -99,7 +99,7 @@
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value (should be 999.9)
                                         // Not sure if it works with other values than 999.9
 
-#define SHOW_GRAPHIC_SCREEN 1           // 1 = A graphic screen with actual values is shown
+#define SHOW_GRAPHIC_SCREEN 0          // 1 = A graphic screen with actual values is shown
                                         // 0 = a log with actions is shown on the screen
 
 //#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)

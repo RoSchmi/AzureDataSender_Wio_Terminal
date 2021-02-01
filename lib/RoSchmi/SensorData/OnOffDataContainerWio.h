@@ -132,7 +132,7 @@ public:
  * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
  * @return Indicating if at least for one Sensor representation the 'hasToBeSent'-flag is set.
  */  
-    bool One_hasToBeBeSent();
+    bool One_hasToBeBeSent(DateTime localNow);
      
     OnOffSampleValueSet GetOnOffValueSet();   
 };
