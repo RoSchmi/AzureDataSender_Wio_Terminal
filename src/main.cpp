@@ -800,8 +800,7 @@ void loop()
               TimeSpan TimeFromLast = onOffValueSet.OnOffSampleValues[i].TimeFromLast;
               char timefromLast[15] = {0};
               sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
-           
-              //OnOffTablesParamsArray[0].LastSendTime = dateTimeUTCNow;
+                         
               size_t onOffPropertyCount = 5;
               OnOffPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"ActStatus", onOffValueSet.OnOffSampleValues[i].outInverter ? (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].actState ? "Off" : "On"), (char *)"Edm.String");
               OnOffPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"LastStatus", onOffValueSet.OnOffSampleValues[i].outInverter ? (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "On" : "Off") : (char *)(onOffValueSet.OnOffSampleValues[i].lastState ? "Off" : "On"), (char *)"Edm.String");
@@ -825,7 +824,9 @@ void loop()
               
               // Store Entity to Azure Cloud   
               __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedOnOffTableName.c_str(), onOffTableEntity, (char *)EtagBuffer);
-              break; // Send only one in each round of loop 
+              
+              delay(1000);     // wait at least 1 sec so that two uploads cannot have the same RowKey
+              break;          // Send only one in each round of loop 
             }
             else
             {
