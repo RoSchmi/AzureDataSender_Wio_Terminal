@@ -2,7 +2,8 @@
 // Copyright RoSchmi 2020, 2021. License Apache 2.0
 
 // Set WiFi and Azure credentials in file include/config_secret.h  (take config_secret_template.h as a template)
-// Settings like sendinterval, transport protocol, tablenames and so on are to be defined in /include/config.h
+// Settings like sendinterval, timezone, daylightsavingstime settings, transport protocol, 
+// tablenames and so on are to be defined in /include/config.h
 
 
   // I started to make this App from the Azure Storage Blob Example see: 
@@ -10,8 +11,8 @@
 
   // The used Azure-sdk-for-c libraries were Vers. 1.1.0-beta.3
   // https://github.com/Azure/azure-sdk-for-c/releases/tag/1.1.0-beta.3
-  // In Vers. 1.1.0-beta.3 was a difficulte to find bug in the file az_http_internal.h
-  // which is fixed in the repo of this App
+  // In Vers. 1.1.0-beta.3 was a difficult to find bug in the file az_http_internal.h
+  // which is fixed in this repo and in later versions of the Microsoft repo
 
   
 // Memory usage Wio Terminal
@@ -126,9 +127,9 @@ LIS3DHTR<TwoWire> lis;
 #define DHTPIN 0
 #define DHTTYPE DHT22
 
-// In the driver the default third parameter (Count) is 25
+// In the original driver the default third parameter (Count) is 25
 // This didn't work when the code was compiled in release mode
-// I test out that a value of 13 was o.k. for dubug mode and release mode 
+// I found out by trial that a value of 13 was o.k. for dubug mode and release mode 
 DHT dht(DHTPIN, DHTTYPE, 13);
 
 TFT_eSPI tft;
@@ -320,7 +321,7 @@ void setup()
   }
   
   //Initialize OnOffSwitcher (for tests and simulation)
-  onOffSwitcherWio.begin(TimeSpan(60 * 60));   // Toggle every 60 min
+  onOffSwitcherWio.begin(TimeSpan(30 * 60));   // Toggle every 30 min
   onOffSwitcherWio.SetInactive();
   //onOffSwitcherWio.SetActive();
 
@@ -351,7 +352,7 @@ void setup()
   sprintf(buf, "Initial WiFi-Status: %i", (int)WiFi.status());
   lcd_log_line(buf);
   
-  // Setting Daylightsavingtime. Enter values for your zone in file inc/config.h
+  // Setting Daylightsavingtime. Enter values for your zone in file include/config.h
   // Program aborts in some cases of invalid values
   bool firstTimeZoneDef_is_Valid = true;
   int dstWeekday = getDayNum(DST_START_WEEKDAY);
@@ -765,12 +766,30 @@ void loop()
         
           for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables
           {
-            if (onOffValueSet.OnOffSampleValues[i].hasToBeSent)
+            DateTime lastSwitchTimeDate = DateTime( onOffValueSet.OnOffSampleValues[i].LastSwitchTime.year(), 
+                                                onOffValueSet.OnOffSampleValues[i].LastSwitchTime.month(), 
+                                                onOffValueSet.OnOffSampleValues[i].LastSwitchTime.day());
+
+            DateTime actTimeDate = DateTime(localTime.year(), localTime.month(), localTime.day());
+
+            if (onOffValueSet.OnOffSampleValues[i].hasToBeSent || ((onOffValueSet.OnOffSampleValues[i].actState == true) &&  (lastSwitchTimeDate.operator!=(actTimeDate))))
             {
               onOffDataContainer.Reset_hasToBeSent(i);     
               EntityProperty OnOffPropertiesArray[5];
-              TimeSpan  onTime =  onOffValueSet.OnOffSampleValues[i].OnTimeDay;
-                           
+
+               // RoSchmi
+               TimeSpan  onTime = onOffValueSet.OnOffSampleValues[i].OnTimeDay;
+               if (lastSwitchTimeDate.operator!=(actTimeDate))
+               {
+                  onTime = TimeSpan(0);                 
+                  onOffDataContainer.Set_OnTimeDay(i, onTime);
+
+                  if (onOffValueSet.OnOffSampleValues[i].actState == true)
+                  {
+                    onOffDataContainer.Set_LastSwitchTime(i, actTimeDate);
+                  }
+               }
+                          
               char OnTimeDay[15] = {0};
               sprintf(OnTimeDay, "%03i-%02i:%02i:%02i", onTime.days(), onTime.hours(), onTime.minutes(), onTime.seconds());
               createSampleTime(dateTimeUTCNow, timeZoneOffsetUTC, (char *)sampleTime);
@@ -778,8 +797,8 @@ void loop()
               // Tablenames come from the onOffValueSet, here usually the tablename is augmented with the actual year
               String augmentedOnOffTableName = onOffValueSet.OnOffSampleValues[i].tableName;
               if (augmentTableNameWithYear)
-              {
-                augmentedOnOffTableName += (dateTimeUTCNow.year());     
+              {               
+                augmentedOnOffTableName += (localTime.year()); 
               }
 
               // Create table if table doesn't exist
@@ -796,8 +815,11 @@ void loop()
                     NVIC_SystemReset();     // Makes Code 64
                  }
               }
-       
+              
               TimeSpan TimeFromLast = onOffValueSet.OnOffSampleValues[i].TimeFromLast;
+
+
+
               char timefromLast[15] = {0};
               sprintf(timefromLast, "%03i-%02i:%02i:%02i", TimeFromLast.days(), TimeFromLast.hours(), TimeFromLast.minutes(), TimeFromLast.seconds());
                          
@@ -1433,7 +1455,6 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     dateTimeUTCNow = sysTime.getTime();
     time_helpers.update(dateTimeUTCNow);
     uint32_t actRtcTime = dateTimeUTCNow.secondstime();
-    //unsigned long  utcHeaderDateTime = responseHeaderDateTime.secondstime();
     dateTimeUTCNow = responseHeaderDateTime;
     sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
     sysTime.setTime(dateTimeUTCNow); 
@@ -1464,7 +1485,8 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr, X509Cert
     #if REBOOT_AFTER_FAILED_UPLOAD == 1   // When selected in config.h -> Reboot through SystemReset after failed uoload
 
         #if TRANSPORT_PROTOCOL == 1
-
+          
+          // The outcommended code resets the WiFi module (did not solve problem)
           //pinMode(RTL8720D_CHIP_PU, OUTPUT); 
           //digitalWrite(RTL8720D_CHIP_PU, LOW); 
           //delay(500); 

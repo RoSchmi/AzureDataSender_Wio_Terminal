@@ -125,6 +125,25 @@ public:
  */  
     void Set_Year(int sensorIndex, int year);
 
+  /**
+ * @brief Sets the DateTime (of the last upload)
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] pSwitchDateTime The dateTime 
+ * 
+ */  
+    void Set_LastSwitchTime(int sensorIndex, DateTime pSwitchDateTime);
+
+    /**
+ * @brief Sets the onTimeDay Timespan
+ *
+ * @param[in] sensorIndex The index of 4 OnOff-Tables (0 - 3)
+ * @param[in] pOnTimeDay The timespan the sensor was in 'on' state on this day
+ * 
+ */  
+    void Set_OnTimeDay(int sensorIndex, TimeSpan pOnTimeDay); 
+
+
 
 /**
  * @brief Returns true if at least in one of the sensor representations the 'hasToBeSent'-flag is set

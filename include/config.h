@@ -29,19 +29,19 @@
 // regular expression "^[A-Za-z][A-Za-z0-9]{2,62}$".
 // max length in this App is 45
 
-#define ANALOG_TABLENAME "AnalogValuesXX"          // Name of the Azure Table to store 4 analog Values max length = 45
+#define ANALOG_TABLENAME "AnalogValuesX"          // Name of the Azure Table to store 4 analog Values max length = 45
 
 #define ANALOG_TABLE_PART_PREFIX "Y2_"            // Prefix for PartitionKey of Analog Tables (default, no need to change)
 
 
                                                // Names of tables to be created in your Azure Storage Account
                                                // Per default the names are augmented with the actual year in this App
-#define ON_OFF_TABLENAME_01 "OnOffx01xx"          // Name of the 1. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_02 "OnOffx02xx"          // Name of the 2. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_03 "OnOffx03xx"          // Name of the 3. On/Off Table  max length = 45
-#define ON_OFF_TABLENAME_04 "OnOffx04xx"          // Name of the 4. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_01 "OnOffx01x"          // Name of the 1. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_02 "OnOffx02x"          // Name of the 2. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_03 "OnOffx03x"          // Name of the 3. On/Off Table  max length = 45
+#define ON_OFF_TABLENAME_04 "OnOffx04x"          // Name of the 4. On/Off Table  max length = 45
 
-#define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables (default, no need to change)
+#define ON_OFF_TABLE_PART_PREFIX "Y3_"           // Prefix for PartitionKey of On/Off Tables (default, only change if needed)
 
 #define ANALOG_SENSOR_01_LABEL "Temperature"    // Labels for sensors to be displayed on Wio Terminal screen (length max 13)
 #define ANALOG_SENSOR_02_LABEL "Humidity"       
@@ -62,9 +62,9 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_SECONDS 2   // Analog sensors are read with this interval  (limited 1 to 14400)                                    
 
-#define WORK_WITH_WATCHDOG 0               // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
+#define WORK_WITH_WATCHDOG 1               // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
 
-#define REBOOT_AFTER_FAILED_UPLOAD 0         // 1 = yes, 0 = no, Because of possible bug in the App or the firmware the App doesn't recover
+#define REBOOT_AFTER_FAILED_UPLOAD 1         // 1 = yes, 0 = no, Because of possible bug in the App or the firmware the App doesn't recover
                                               // after a failed upload, so we should reboot (as long as the bug isn't solved)   
 
 
@@ -99,10 +99,10 @@
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value (should be 999.9)
                                         // Not sure if it works with other values than 999.9
 
-#define SHOW_GRAPHIC_SCREEN 0          // 1 = A graphic screen with actual values is shown
+#define SHOW_GRAPHIC_SCREEN 1          // 1 = A graphic screen with actual values is shown
                                         // 0 = a log with actions is shown on the screen
 
-//#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
+#define USE_SIMULATED_SENSORVALUES   // Activates simulated sensor values (sinus curve) or (test values)
 //#define USE_TEST_VALUES              // Activates sending of test values (see Code in main.cpp)
                                        // if activated we select test values, not sinus curves
 
