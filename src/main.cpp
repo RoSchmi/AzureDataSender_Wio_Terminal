@@ -1,7 +1,7 @@
 // Application AzureDataSender_Wio_Terminal
 // Copyright RoSchmi 2020, 2021. License Apache 2.0
 
-// Set WiFi and Azure credentials in file include/config_secret.h  (take config_secret_template.h as a template)
+// Set WiFi and Azure credentials in file include/config_secret.h  (take config_secret_template.h as template)
 // Settings like sendinterval, timezone, daylightsavingstime settings, transport protocol, 
 // tablenames and so on are to be defined in /include/config.h
 
