@@ -78,11 +78,11 @@
 #define  DST_ON_NAME                "CEST"
 #define  DST_START_MONTH            "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
 #define  DST_START_WEEKDAY          "Sun"    // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-#define  DST_START_WEEK_OF_MONTH    "Last"   // Last, First, Second, Third, Fourth
+#define  DST_START_WEEK_OF_MONTH    "Fourth"   // Last, First, Second, Third, Fourth
 #define  DST_START_HOUR              2        // 0 - 23
 
 #define  DST_OFF_NAME               "CET"
-#define  DST_STOP_MONTH             "Mar"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
+#define  DST_STOP_MONTH             "Oct"    // Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov or Dec
 #define  DST_STOP_WEEKDAY           "Sun"    // Sun, Tue, Wed, Thu, Fri, Sat
 #define  DST_STOP_WEEK_OF_MONTH     "Last"   // Last, First, Second, Third, Fourth
 #define  DST_STOP_HOUR               3       // 0 - 23

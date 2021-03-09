@@ -38,6 +38,11 @@ Open the file include/config.h and enter some settings (esp. the send interval, 
 
 Now you should be able to compile and deploy the App to the Wio Terminal. The App should automatically create a table in your Azure Storage Account and start to create new rows.
 
+A version of this App for the Wio Terminal using an Enc28 Ethernet module
+is available under this link:
+
+-https://github.com/RoSchmi/AzureDataSender_Wio_Terminal_Eth
+
 
 
 
