@@ -20,7 +20,7 @@ The stored data can be visualized in table form with the App 'AzureTabStorClient
 https://azuretabstorclient.wordpress.com/
 https://azureiotcharts.home.blog/
 
-Before you start, install the latest firmware (actually v2.1.1) for the Wio Terminal WiFi module.
+Before you start, install the latest firmware (actually v2.1.2) for the Wio Terminal WiFi module.
 https://wiki.seeedstudio.com/Wio-Terminal-Network-Overview/
 https://wiki.seeedstudio.com/Wio-Terminal-Wi-Fi/
 
