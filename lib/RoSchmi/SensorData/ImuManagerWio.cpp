@@ -31,10 +31,12 @@ void ImuManagerWio::SetNewImuReadings(ImuSampleValues imuReadings)
     averageY =  floatingAverage(sampleSet, IMU_ARRAY_ELEMENT_COUNT, 'Y');
     averageZ =  floatingAverage(sampleSet, IMU_ARRAY_ELEMENT_COUNT, 'Z');
 
+    /*
     Serial.println(averageX);
     Serial.println(averageY);
     Serial.println(averageZ);
-    Serial.println("");  
+    Serial.println("");
+    */ 
 }
 
 float ImuManagerWio::floatingAverage(ImuSampleValueSet sampleSet, int arrayElementCnt, char axis)
