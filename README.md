@@ -33,9 +33,6 @@ to a file named
 Open config_secret.h and enter your WiFi Credentials and the Credentials of your Azure Storage Account.
 Open the file include/config.h and enter some settings (esp. the send interval, your timezone and daylightsavings offset) according to your needs.
 
-#### Actually (15.01.2021) the libraries from the dev branch of 'Seeed_Arduino_mbedtls' have to be used.
-
-
 Now you should be able to compile and deploy the App to the Wio Terminal. The App should automatically create a table in your Azure Storage Account and start to create new rows.
 
 A version of this App for the Wio Terminal using an Enc28 Ethernet module
