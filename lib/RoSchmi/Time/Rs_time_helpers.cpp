@@ -179,6 +179,25 @@ time_t Rs_time_helpers::calcDateDST(struct ruleDST rule, int year)
 	return t;
 	}
 
+// RoSchmi
+uint64_t Rs_time_helpers::getUtcCurrent()
+{
+  return utcCurrent;
+}
+
+uint64_t Rs_time_helpers::getUtcDST()
+{
+  return utcDST;
+}
+
+uint64_t Rs_time_helpers::getUtcSTD()
+{
+  return utcSTD;
+}
+
+
+
+
 bool Rs_time_helpers::summerTime() 
 {
   if ((utcCurrent > utcDST) && (utcCurrent <= utcSTD)) {

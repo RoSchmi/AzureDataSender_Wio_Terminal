@@ -118,6 +118,12 @@ class Rs_time_helpers {
      */
     bool isDST();
 
+    // RoSchmi
+    uint64_t getUtcCurrent();
+    uint64_t getUtcDST();
+    uint64_t getUtcSTD();
+
+
 
     /**
      * @brief returns a formatted string

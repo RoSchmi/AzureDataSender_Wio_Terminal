@@ -548,9 +548,27 @@ if (!WiFi.enableSTA(true))
   }
   
   dateTimeUTCNow = sysTime.getTime();
+  
+  // RoSchmi for DST tests
+  // dateTimeUTCNow = DateTime(2021, 10, 31, 1, 1, 0);
+
+
   time_helpers.update(dateTimeUTCNow);
   time_helpers.begin();
 
+
+  /* RoSchmi for DST tests
+  volatile uint64_t utcDstStart = time_helpers.getUtcDST();
+  volatile uint64_t utcDstEnd = time_helpers.getUtcSTD();
+  volatile uint64_t utcCurrent = time_helpers.getUtcCurrent();
+  Serial.print("utcStart: ");
+  Serial.println((unsigned long)utcDstStart);
+  Serial.print("utcAct:   ");
+  Serial.println((unsigned long)utcCurrent);
+  Serial.print("utcEnd:   ");
+  Serial.println((unsigned long)utcDstEnd);
+  volatile bool dstState = time_helpers.isDST();
+  */
   
 
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
@@ -1078,7 +1096,9 @@ int getMonNum(const char * month)
   {  
     if (strcmp((char *)time_helpers.monthsOfTheYear[i], month) == 0)
     {
-      return i + 1;
+      // RoSchmi
+      return i;
+      //return i + 1;
     }   
   }
   return -1;
@@ -1090,7 +1110,9 @@ int getDayNum(const char * day)
   {  
     if (strcmp((char *)time_helpers.daysOfTheWeek[i], day) == 0)
     {
-      return i + 1;
+      // RoSchmi
+      return i;
+      //return i + 1;
     }   
   }
   return -1;
