@@ -551,6 +551,8 @@ if (!WiFi.enableSTA(true))
   time_helpers.update(dateTimeUTCNow);
   time_helpers.begin();
 
+  
+
   lcd_log_line((char *)time_helpers.formattedTime("%d. %B %Y"));    // dd. Mmm yyyy
   lcd_log_line((char *)time_helpers.formattedTime("%A %T"));        // Www hh:mm:ss
   
