@@ -40,6 +40,11 @@ is available under this link:
 
 -https://github.com/RoSchmi/AzureDataSender_Wio_Terminal_Eth
 
+A similar version of this App for Teensy 4.1 (no Display) is available under this link:
+
+https://github.com/RoSchmi/AzureDataSender_Teensy
+
+
 
 
 
