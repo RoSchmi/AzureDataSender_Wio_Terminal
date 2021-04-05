@@ -323,7 +323,7 @@ void setup()
   }
   
   //Initialize OnOffSwitcher (for tests and simulation)
-  onOffSwitcherWio.begin(TimeSpan(30 * 60));   // Toggle every 30 min
+  onOffSwitcherWio.begin(TimeSpan(15 * 60));   // Toggle every 15 min
   onOffSwitcherWio.SetInactive();
   //onOffSwitcherWio.SetActive();
 
