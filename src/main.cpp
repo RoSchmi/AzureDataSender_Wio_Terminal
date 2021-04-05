@@ -154,7 +154,9 @@ uint32_t tryUploadCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
 volatile int32_t sysTimeNtpDelta = 0;
 
-volatile uint32_t previousNtpMillis = 0;
+uint32_t previousNtpUpdateMillis = 0;
+uint32_t previousNtpRequestMillis = 0;
+
 volatile uint32_t previousSensorReadMillis = 0;
 
 uint32_t ntpUpdateInterval = 60000;
@@ -615,14 +617,14 @@ if (!WiFi.enableSTA(true))
   fillDisplayFrame(999.9, 999.9, 999.9, 999.9, false, false, false, false, sendResultState, tryUploadCounter);
   delay(50);
 
-  previousNtpMillis = millis();
+  previousNtpUpdateMillis = millis();
+  previousNtpRequestMillis = millis();
 }
 
 void loop() 
 { 
   if (loopCounter++ % 10000 == 0)   // Make decisions to send data every 10000 th round and toggle Led to signal that App is running
   {
-    uint32_t currentMillis = millis();
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
 
@@ -630,10 +632,10 @@ void loop()
       SAMCrashMonitor::iAmAlive();
     #endif
 
-    // Update RTC from Ntp when ntpUpdateInterval has expired
-    if ((currentMillis - previousNtpMillis) >= ntpUpdateInterval) 
-    {
-        previousNtpMillis = currentMillis;
+    
+    // Update RTC from Ntp when ntpUpdateInterval has expired, retry after 20 sec if update was not successful
+    if (((millis() - previousNtpUpdateMillis) >= ntpUpdateInterval) && ((millis() - previousNtpRequestMillis) >= 20000))  
+    {      
         dateTimeUTCNow = sysTime.getTime();
         uint32_t actRtcTime = dateTimeUTCNow.secondstime();
 
@@ -644,9 +646,12 @@ void loop()
           loopCtr++;
           utcTime = getNTPtime();
         }
+
+        previousNtpRequestMillis = millis();
         
         if (utcNtpTime != 0 )       // if NTP request was successful --> synchronize RTC 
-        {       
+        {  
+            previousNtpUpdateMillis = millis();     
             dateTimeUTCNow = utcNtpTime;
             sysTimeNtpDelta = actRtcTime - dateTimeUTCNow.secondstime();
             
@@ -1367,8 +1372,34 @@ float ReadAnalogSensor(int pSensorIndex)
             { frequDeterminer = 16; y_offset = 30; }
              
             int secondsOnDayElapsed = dateTimeUTCNow.second() + dateTimeUTCNow.minute() * 60 + dateTimeUTCNow.hour() *60 *60;
-                    
-            return roundf((float)25.0 * (float)sin(PI / 2.0 + (secondsOnDayElapsed * ((frequDeterminer * PI) / (float)86400)))) / 10  + y_offset;          
+
+            switch (pSensorIndex)
+            {
+              case 3:
+              {
+                return lastResetCause;
+              }
+              break;
+            
+              case 2:
+              { 
+                uint32_t showInsertCounter = insertCounterAnalogTable % 50;               
+                double theRead = ((double)showInsertCounter) / 10;
+                return theRead;
+              }
+              break;
+              case 0:
+              case 1:
+              {
+                return roundf((float)25.0 * (float)sin(PI / 2.0 + (secondsOnDayElapsed * ((frequDeterminer * PI) / (float)86400)))) / 10  + y_offset;          
+              }
+              break;
+              default:
+              {
+                return 0;
+              }
+            }      
+            
 
   #endif
 }
