@@ -20,7 +20,7 @@ The stored data can be visualized in table form with the App 'AzureTabStorClient
 https://azuretabstorclient.wordpress.com/
 https://azureiotcharts.home.blog/
 
-Before you start, install the latest firmware (actually v2.1.2) for the Wio Terminal WiFi module.
+Before you start, install the latest firmware (actually v2.1.3) for the Wio Terminal WiFi module.
 https://wiki.seeedstudio.com/Wio-Terminal-Network-Overview/
 https://wiki.seeedstudio.com/Wio-Terminal-Wi-Fi/
 
@@ -44,7 +44,8 @@ A similar version of this App for Teensy 4.1 (no Display) is available under thi
 
 https://github.com/RoSchmi/AzureDataSender_Teensy
 
+A similar version for Esp32 DevKit (no Display) is available under this link:
 
-
+https://github.com/RoSchmi/AzureDataSender_Esp32
 
 
