@@ -301,6 +301,8 @@ void setup()
   pinMode(WIO_LIGHT, INPUT );
   
   Serial.begin(9600);
+  //while(!Serial);
+  Serial.println("\r\nStarting");
   Serial.println("\r\nStarting");
 
   pinMode(WIO_5S_PRESS, INPUT_PULLUP);
@@ -627,7 +629,7 @@ void loop()
   {
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
-
+    
     #if WORK_WITH_WATCHDOG == 1
       SAMCrashMonitor::iAmAlive();
     #endif
@@ -674,6 +676,7 @@ void loop()
       time_helpers.update(dateTimeUTCNow);
       int timeZoneOffsetUTC = time_helpers.isDST() ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
       DateTime localTime = dateTimeUTCNow.operator+(TimeSpan(timeZoneOffsetUTC * 60));
+      
       // In the last 15 sec of each day we set a pulse to Off-State when we had On-State before
       bool isLast15SecondsOfDay = (localTime.hour() == 23 && localTime.minute() == 59 &&  localTime.second() > 45) ? true : false;
       
